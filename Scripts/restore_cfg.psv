@@ -151,3 +151,8 @@ P|${HOME}/.config/hypr|hypridle.conf|hypridle
 
  Bluelight filter daemon 
 P|${HOME}/.config/hypr|hyprsunset.conf|hyprsunset
+
+# --------------------------------------------------- // RaVN
+
+# CLI utilities
+O|${HOME}/.local/bin|ravn-dot|bash fzf
