@@ -95,9 +95,11 @@ ncdu                                                   # Terminal Disk Usage Ana
 dua-cli                                                # Interactive disk usage analyzer (dua i)
 libqalculate                                           # terminal calculator
 gum                                                    # Used for interactive menus, spinners, and styling the UI
+grep                                                   # Standard text search utility
 ripgrep                                                # A search tool that combines the usability of ag with the raw speed of grep
 ripgrep-all                                            # A search tool that combines the usability of ag with the raw speed of grep
 fd                                                     # Simple, fast and user-friendly alternative to find
+bc                                                     # Arbitrary-precision calculator used by shell scripts
 ufw                                                    # Uncomplicated Firewall
 btop                                                   # Modern, interactive terminal system monitor
 1password-cli                                          # 1Password command-line tool
@@ -230,6 +232,11 @@ nodejs                                                 # Event-driven I/O framew
 pnpm                                                   # Fast, disk space efficient package manager
 statix-git                                             # Linter/code analysis for Nix
 meld                                                   # Visual diff and merge tool
+
+# --------------------------------------------------- Repository Validation
+actionlint                                             # Static checker for GitHub Actions workflows
+yamllint                                               # YAML syntax and style checker
+pre-commit                                             # Framework for managing repository validation hooks
 
 # --------------------------------------------------- Driver for my Intel HD Graphics 530
 vulkan-intel                                           # Vulkan driver for Intel GPUs

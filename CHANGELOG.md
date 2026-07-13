@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Hypr: removed 'hypr.altab.py' as it is too slow and and use 'hypr.altab.lua' instead. Test using 'hyde-shell altab' to see if it works!
 
 ### Added
+- RaVN: Added system packages for repository validation and shell utility dependencies.
 - RaVN: Added deployable Todo, Countdown, localized weather, Spotify, and recording controls to Waybar layouts.
 - RaVN: Adopted a protected, master-only pull request workflow with repository validation.
 - RaVN: Added `git-bare-clone` to bootstrap a bare repository and upstream-tracking worktrees for all remote branches.
