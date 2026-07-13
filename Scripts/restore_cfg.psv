@@ -156,3 +156,4 @@ P|${HOME}/.config/hypr|hyprsunset.conf|hyprsunset
 
 # CLI utilities
 O|${HOME}/.local/bin|ravn-dot|bash fzf
+O|${HOME}/.local/bin|git-setup global_fn.sh|git github-cli gnupg openssh
