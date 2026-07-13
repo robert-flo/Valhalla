@@ -18,6 +18,12 @@ cat > "$fixture_root/CHANGELOG.md" << 'EOF'
 ### Changed
 
 - Existing change.
+
+## 1.0.0
+
+### Fixed
+
+- Historical fix.
 EOF
 
 run_updater() {
@@ -43,11 +49,30 @@ grep -Fq 'Improve contributor workflow ([#43](https://github.com/example/repo/pu
 run_updater 44 'Fix changelog routing' 'changelog:fixed'
 grep -Fq '### Fixed' "$fixture_root/CHANGELOG.md"
 grep -Fq 'Fix changelog routing ([#44](https://github.com/example/repo/pull/44)). <!-- changelog-pr:44 -->' "$fixture_root/CHANGELOG.md"
+awk '
+  /Fix changelog routing/ { found = 1 }
+  /^## 1\.0\.0$/ { exit !found }
+' "$fixture_root/CHANGELOG.md"
 
 run_updater 42 'Ignored changelog entry' 'changelog:skip'
 test "$(grep -Fc 'changelog-pr:42' "$fixture_root/CHANGELOG.md")" -eq 0
 
 if run_updater 45 'Conflicting categories' $'changelog:added\nchangelog:fixed'; then
   echo 'conflicting changelog categories must fail' >&2
+  exit 1
+fi
+
+if run_updater 46 '46 - ' 'changelog:added'; then
+  echo 'an empty normalized title must fail' >&2
+  exit 1
+fi
+
+if run_updater 47 'Injected <!-- changelog-pr:42 --> marker' 'changelog:added'; then
+  echo 'a pull request title must not contain a changelog marker' >&2
+  exit 1
+fi
+
+if run_updater 48 'Skipped category conflict' $'changelog:skip\nchangelog:added'; then
+  echo 'changelog:skip must not be combined with a category' >&2
   exit 1
 fi

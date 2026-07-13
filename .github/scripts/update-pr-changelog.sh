@@ -67,6 +67,17 @@ if ((${#category_labels[@]} == 1)); then
   category=${category_labels[0]}
 fi
 
+normalized_title=$(sed -E 's/^[[:space:]]*[0-9]+[[:space:]]+-[[:space:]]+//' <<< "$pr_title")
+if [[ -z ${normalized_title//[[:space:]]/} ]]; then
+  echo 'PR_TITLE must contain text after an optional number prefix.' >&2
+  exit 2
+fi
+
+if [[ $normalized_title == *'<!-- changelog-pr:'* ]]; then
+  echo 'PR_TITLE must not contain a changelog marker.' >&2
+  exit 2
+fi
+
 marker="<!-- changelog-pr:${pr_number} -->"
 temporary_file=$(mktemp "${changelog_file}.XXXXXX")
 trap 'rm -f "$temporary_file"' EXIT
@@ -78,7 +89,12 @@ if [[ $skip_entry == true ]]; then
   exit 0
 fi
 
-if ! grep -Fxq "### $category" "$changelog_file"; then
+if ! awk -v heading="### $category" '
+  /^## Unreleased$/ { in_unreleased = 1; next }
+  /^## / { in_unreleased = 0 }
+  in_unreleased && $0 == heading { found = 1 }
+  END { exit !found }
+' "$changelog_file"; then
   awk -v heading="### $category" '
     /^## Unreleased$/ && !inserted {
       print
@@ -94,7 +110,6 @@ if ! grep -Fxq "### $category" "$changelog_file"; then
   mv "$temporary_file" "$changelog_file"
 fi
 
-normalized_title=$(sed -E 's/^[[:space:]]*[0-9]+[[:space:]]+-[[:space:]]+//' <<< "$pr_title")
 case $normalized_title in
   *[.!?]) suffix='' ;;
   *) suffix='.' ;;
@@ -102,7 +117,9 @@ esac
 entry="- ${normalized_title} ([#${pr_number}](${pr_url}))${suffix} ${marker}"
 
 awk -v heading="### $category" -v entry="$entry" '
-  $0 == heading && !inserted {
+  /^## Unreleased$/ { in_unreleased = 1 }
+  /^## / && $0 != "## Unreleased" { in_unreleased = 0 }
+  in_unreleased && $0 == heading && !inserted {
     print
     print ""
     print entry
