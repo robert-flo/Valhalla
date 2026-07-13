@@ -22,15 +22,15 @@ for layout in "$waybar_root"/layouts/hyprdots/*.jsonc; do
 		'group/pill#spotify' \
 		'custom/screenrecording' \
 		'custom/weather'; do
-		rg -Fq "$module" "$layout"
+		grep -Fq "$module" "$layout"
 	done
 done
 
-rg -Fq 'wttrbar --location \"San Salvador, El Salvador\" --lang es' \
+grep -Fq 'wttrbar --location \"San Salvador, El Salvador\" --lang es' \
 	"$waybar_root/modules/custom-weather.jsonc"
-rg -Fq 'hyde-shell screenrecord --quit' \
+grep -Fq 'hyde-shell screenrecord --quit' \
 	"$waybar_root/modules/custom-screenrecording.jsonc"
-rg -Fq 'hyde-shell screenshot s' \
+grep -Fq 'hyde-shell screenshot s' \
 	"$waybar_root/modules/custom-screenrecording.jsonc"
 
 find "$waybar_root/scripts" -type f -name '*.sh' -print0 |
