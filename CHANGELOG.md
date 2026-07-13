@@ -10,28 +10,18 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Added
 
-- Integrated the personal RaVN package set into the core installation
-  ([#4](https://github.com/robert-flo/Valhalla/pull/4)).
-- Added the `ravn-dot` workflow for managing the personal dotfiles repository
-  ([#6](https://github.com/robert-flo/Valhalla/pull/6)).
-- Added an assistant for configuring the personal Git environment
-  ([#8](https://github.com/robert-flo/Valhalla/pull/8)).
-- Added `git-bare-clone` for bootstrapping bare repositories with
-  upstream-tracking worktrees ([#12](https://github.com/robert-flo/Valhalla/pull/12)).
-- Added deployable Todo, Countdown, localized weather, Spotify, and recording
-  controls across the RaVN Waybar layouts
-  ([#18](https://github.com/robert-flo/Valhalla/pull/18)).
-- Added the repository validation tools and shell utility dependencies to the
-  RaVN package manifest ([#19](https://github.com/robert-flo/Valhalla/pull/19)).
-- Added a staged-shell pre-commit gate with safe formatting, lint reporting,
-  and worktree-aware diagnostics
-  ([#23](https://github.com/robert-flo/Valhalla/pull/23)).
-- Added a VS Code workspace for validating changed and new shell scripts
-  ([#26](https://github.com/robert-flo/Valhalla/pull/26)).
+- Integrate RaVN packages into core installation ([#4](https://github.com/robert-flo/Valhalla/pull/4)). <!-- changelog-pr:4 -->
+- Add the RaVN dotfiles management workflow ([#6](https://github.com/robert-flo/Valhalla/pull/6)). <!-- changelog-pr:6 -->
+- Add the RaVN Git environment setup assistant ([#8](https://github.com/robert-flo/Valhalla/pull/8)). <!-- changelog-pr:8 -->
+- Add bare repository workspace bootstrap ([#12](https://github.com/robert-flo/Valhalla/pull/12)). <!-- changelog-pr:12 -->
+- Integrate RaVN Waybar personalizations ([#18](https://github.com/robert-flo/Valhalla/pull/18)). <!-- changelog-pr:18 -->
+- Add RaVN repository validation packages ([#19](https://github.com/robert-flo/Valhalla/pull/19)). <!-- changelog-pr:19 -->
+- Add a safe staged-shell pre-commit gate ([#23](https://github.com/robert-flo/Valhalla/pull/23)). <!-- changelog-pr:23 -->
+- Add a VS Code workspace for validating changed and new shell scripts ([#26](https://github.com/robert-flo/Valhalla/pull/26)). <!-- changelog-pr:26 -->
+- Add repository guidance and tooling for automated contributors ([#2](https://github.com/robert-flo/Valhalla/pull/2)). <!-- changelog-pr:2 -->
 
 ### Changed
 
-- Made issue worktree directory and branch names match consistently
-  ([#10](https://github.com/robert-flo/Valhalla/pull/10)).
-- Adopted a protected, master-only pull request workflow with repository
-  validation ([#14](https://github.com/robert-flo/Valhalla/pull/14)).
+- Keep issue worktree and branch names consistent ([#10](https://github.com/robert-flo/Valhalla/pull/10)). <!-- changelog-pr:10 -->
+- Enforce a master-only pull request workflow ([#14](https://github.com/robert-flo/Valhalla/pull/14)). <!-- changelog-pr:14 -->
+- Reset the changelog for the RaVN hardfork ([#20](https://github.com/robert-flo/Valhalla/pull/20)). <!-- changelog-pr:20 -->
