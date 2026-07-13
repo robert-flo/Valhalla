@@ -52,9 +52,17 @@ Thank you for your interest in contributing to Community Standards! We welcome a
 
 5. Code should be documented where appropriate.
 
-- Changes compared to the latest HyDE release which have a direct effect on the user (opposed to things like code refactorings or documentation/tests) additionally need to be documented in the `CHANGELOG.md`
-- The existing entries should be used as a style guideline.
-- The change log should be used to document changes from a user-perspective, instead of explaining the technical background (like commit messages) More information about HyDE's change log format can be found [here](https://keepachangelog.com/).
+- For internal pull requests, changelog entries are generated automatically in
+  the pull-request branch. Use a concise, user-facing pull-request title; the
+  title becomes the entry under `Unreleased`.
+- The default category is `Changed`. Apply exactly one of
+  `changelog:added`, `changelog:changed`, `changelog:fixed`,
+  `changelog:removed`, `changelog:security`, or `changelog:deprecated` to
+  choose another category.
+- Apply `changelog:skip` only when the pull request should have no user-facing
+  changelog entry, such as documentation-only or test-only work.
+- Do not edit the generated entry manually. Edit the pull-request title or its
+  changelog label and the automation will update the entry idempotently.
 
 5.1. **Optional But Recommended: Test with HydeVM** - You can test your changes in a VM using [HydeVM](Scripts/hydevm/README.md) before submitting.
 

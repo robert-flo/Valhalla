@@ -1,0 +1,67 @@
+name: Update pull request changelog
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - opened
+      - reopened
+      - edited
+      - labeled
+      - unlabeled
+      - ready_for_review
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  update:
+    name: Update source branch changelog
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref != 'master' &&
+      github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request source branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Read pull request labels
+        run: |
+          {
+            echo 'PR_LABELS<<EOF'
+            jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH"
+            echo EOF
+          } >> "$GITHUB_ENV"
+
+      - name: Generate changelog entry
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: .github/scripts/update-pr-changelog.sh
+
+      - name: Commit changelog update to source branch
+        env:
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if git diff --quiet -- CHANGELOG.md; then
+            echo 'Changelog already reflects this pull request.'
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add CHANGELOG.md
+          git commit -m "chore(changelog): update PR #${PR_NUMBER}"
+
+          if ! git push origin "HEAD:${PR_BRANCH}"; then
+            echo '::error title=Changelog update could not be pushed::Grant GitHub Actions contents: write permission for internal pull-request branches.'
+            exit 1
+          fi

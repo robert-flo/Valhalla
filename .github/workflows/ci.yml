@@ -70,6 +70,10 @@ jobs:
         shell: bash
         run: tests/pkg-core-ravn.sh
 
+      - name: Test pull request changelog automation
+        shell: bash
+        run: tests/changelog-automation.sh
+
       - name: Check restore manifest structure
         shell: bash
         run: |
