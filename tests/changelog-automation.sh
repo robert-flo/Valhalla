@@ -24,6 +24,7 @@ cat > "$fixture_root/CHANGELOG.md" << 'EOF'
 ### Fixed
 
 - Historical fix.
+- Historical automated entry. <!-- changelog-pr:90 -->
 EOF
 
 run_updater() {
@@ -56,6 +57,10 @@ awk '
 
 run_updater 42 'Ignored changelog entry' 'changelog:skip'
 test "$(grep -Fc 'changelog-pr:42' "$fixture_root/CHANGELOG.md")" -eq 0
+
+before_historical_update=$(sha256sum "$fixture_root/CHANGELOG.md")
+run_updater 90 'Rewrite released entry' 'changelog:added'
+test "$before_historical_update" = "$(sha256sum "$fixture_root/CHANGELOG.md")"
 
 if run_updater 45 'Conflicting categories' $'changelog:added\nchangelog:fixed'; then
   echo 'conflicting changelog categories must fail' >&2

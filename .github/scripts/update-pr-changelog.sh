@@ -82,7 +82,21 @@ marker="<!-- changelog-pr:${pr_number} -->"
 temporary_file=$(mktemp "${changelog_file}.XXXXXX")
 trap 'rm -f "$temporary_file"' EXIT
 
-awk -v marker="$marker" 'index($0, marker) == 0 { print }' "$changelog_file" > "$temporary_file"
+if awk -v marker="$marker" '
+  /^## Unreleased$/ { in_unreleased = 1; next }
+  /^## / { in_unreleased = 0 }
+  !in_unreleased && index($0, marker) { found = 1 }
+  END { exit !found }
+' "$changelog_file"; then
+  echo "Pull request #${pr_number} is already in a released section; preserving it."
+  exit 0
+fi
+
+awk -v marker="$marker" '
+  /^## Unreleased$/ { in_unreleased = 1 }
+  /^## / && $0 != "## Unreleased" { in_unreleased = 0 }
+  !in_unreleased || index($0, marker) == 0 { print }
+' "$changelog_file" > "$temporary_file"
 mv "$temporary_file" "$changelog_file"
 
 if [[ $skip_entry == true ]]; then
