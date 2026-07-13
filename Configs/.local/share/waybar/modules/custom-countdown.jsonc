@@ -1,0 +1,11 @@
+{
+  "custom/countdown": {
+    "exec": "~/.local/share/waybar/scripts/countdown/countdown.sh",
+    "return-type": "json",
+    "format": "{}",
+    "interval": 3600,
+    "on-click-right": "killall rofi || bash ~/.local/share/waybar/scripts/countdown/countdown.sh --show-rofi",
+    "on-scroll-up": "~/.local/share/waybar/scripts/countdown/countdown.sh --scroll-up",
+    "on-scroll-down": "~/.local/share/waybar/scripts/countdown/countdown.sh --scroll-down"
+  }
+}
