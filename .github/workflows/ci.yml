@@ -66,6 +66,10 @@ jobs:
         shell: bash
         run: tests/waybar-ravn.sh
 
+      - name: Test RaVN package manifest
+        shell: bash
+        run: tests/pkg-core-ravn.sh
+
       - name: Check restore manifest structure
         shell: bash
         run: |
