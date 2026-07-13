@@ -276,7 +276,13 @@ verify_ssh() {
       print_success "SSH agent running: ${WHITE}$loaded_keys${NC} key(s) loaded"
     else
       print_warn "SSH agent running but no keys loaded"
-      print_info "Load manually: ${GRAY}ssh-add ${key_path/#$HOME/\~}${NC}"
+      print_step "Loading SSH key into agent..."
+      if ssh-add "$key_path" 2> /dev/null; then
+        print_success "SSH key loaded into agent"
+      else
+        print_error "Failed to load SSH key"
+        print_info "Try manually: ${GRAY}ssh-add ${key_path/#$HOME/\~}${NC}"
+      fi
     fi
   else
     print_warn "SSH agent not detected"
@@ -318,7 +324,21 @@ verify_ssh() {
       print_warn "Could not read local public key"
     elif [[ -z $key_title ]]; then
       print_warn "Key not on GitHub"
-      print_info "Run setup to register the authentication and signing keys"
+      print_step "Uploading SSH key to GitHub..."
+      local key_title_new
+      key_title_new="ravn-$(hostname)-$(date +%Y%m%d)"
+      if gh ssh-key add "$key_path.pub" --title "$key_title_new" 2> /dev/null; then
+        print_success "Authentication key uploaded: ${WHITE}$key_title_new${NC}"
+      else
+        print_error "Failed to upload authentication key"
+        print_info "Try manually: ${GRAY}gh ssh-key add ${key_path/#$HOME/\~}.pub${NC}"
+      fi
+
+      if gh ssh-key add "$key_path.pub" --type signing --title "$key_title_new (Signing)" 2> /dev/null; then
+        print_success "Signing key uploaded: ${WHITE}$key_title_new (Signing)${NC}"
+      else
+        print_error "Failed to upload signing key"
+      fi
     else
       print_success "Key registered on GitHub"
       print_info "Title: ${GRAY}$key_title${NC}"
@@ -393,7 +413,13 @@ verify_gpg() {
       print_success "GPG key uploaded to GitHub"
     else
       print_warn "GPG key not on GitHub"
-      print_info "Run setup to register the GPG key"
+      print_step "Uploading GPG key to GitHub..."
+      if gpg --armor --export "$GPG_KEY_ID" | gh gpg-key add - 2> /dev/null; then
+        print_success "GPG key uploaded to GitHub"
+      else
+        print_error "Failed to upload GPG key"
+        print_info "Try manually: ${GRAY}gpg --armor --export $GPG_KEY_ID | gh gpg-key add -${NC}"
+      fi
     fi
   else
     print_warn "Cannot check GitHub GPG keys ${GRAY}(gh not authenticated)${NC}"
