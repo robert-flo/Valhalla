@@ -85,3 +85,179 @@ fastfetch                                              # system information fetc
 # --------------------------------------------------- // HyDE
 hyprquery                                              # A CLI utility for querying configuration values from hypr-related configuration. Using native hyprlang lib.
 hypridle                                               # idle daemon
+
+# --------------------------------------------------- // RaVN
+
+# --------------------------------------------------- System
+wttrbar                                                # for weather
+python-requests|wttrbar                                # script dependency
+ncdu                                                   # Terminal Disk Usage Analyzer
+dua-cli                                                # Interactive disk usage analyzer (dua i)
+libqalculate                                           # terminal calculator
+gum                                                    # Used for interactive menus, spinners, and styling the UI
+ripgrep                                                # A search tool that combines the usability of ag with the raw speed of grep
+ripgrep-all                                            # A search tool that combines the usability of ag with the raw speed of grep
+fd                                                     # Simple, fast and user-friendly alternative to find
+ufw                                                    # Uncomplicated Firewall
+btop                                                   # Modern, interactive terminal system monitor
+1password-cli                                          # 1Password command-line tool
+snapd                                                  # Service and tools for managing Snap packages
+apparmor                                               # AppArmor kernel security support for snapd
+squashfs-tools                                         # Tools to create and append squashfs filesystems for snapd
+
+# --------------------------------------------------- Window Manager
+gpu-screen-recorder                                    # Screen recorder
+wf-recorder                                            # Screen recorder for wlroots-based compositors
+tesseract                                              # OCR engine for text extraction
+tesseract-data-eng                                     # OCR English language data
+tesseract-data-spa                                     # OCR Spanish language data
+wl-clipboard                                           # Command-line copy/paste utilities for Wayland
+
+# --------------------------------------------------- Dependencies
+sshpass                                                # non-interactive ssh password provider
+
+# --------------------------------------------------- Utilities & Debugging
+curl                                                   # Command line tool for transferring data with URLs
+wget                                                   # Network utility to retrieve files from the Web
+knot                                                   # Knot DNS server (authoritative and recursive)
+speedtest-cli                                          # Command-line interface for testing internet bandwidth
+mtr                                                    # Network diagnostics tool (combines traceroute and ping)
+strace                                                 # System call tracer
+lsof                                                   # List open files
+
+# --------------------------------------------------- Applications
+brave-origin-beta-bin                                  # browser
+google-chrome                                          # browser (stable)
+google-chrome-dev                                      # browser (dev channel)
+microsoft-edge-stable-bin                              # browser
+konsole                                                # terminal emulator
+micro                                                  # modern terminal-based text editor
+baobab                                                 # graphical disk usage analyzer
+alacritty                                              # GPU-accelerated terminal emulator
+warp-terminal-bin                                      # terminal emulator
+yt-dlp                                                 # The media downloading engine
+ffmpeg                                                 # Required by yt-dlp to merge audio/video streams and extract MP3
+mpv                                                    # Media player for local and streaming video
+resvg                                                  # SVG rasterization for elio previews
+7zip                                                   # Archive preview support for elio
+elio                                                   # Terminal file manager with rich previews (AUR)
+
+# --------------------------------------------------- Shell
+shfmt                                                  # Shell script formatter
+shellcheck                                             # Shell script static analysis tool
+zoxide                                                 # A smarter cd command for your terminal
+tldr                                                   # Collaborative cheatsheets for console commands
+glow                                                   # Terminal-based markdown renderer
+tmux                                                   # Terminal multiplexer
+skim                                                   # Fuzzy finder in Rust (alternative to fzf)
+bash-completion                                        # Programmable completion for the bash shell
+
+# --------------------------------------------------- Gaming
+steam                                                  # gaming platform
+gamemode                                               # daemon and library for game optimizations
+
+# --------------------------------------------------- Music
+cava                                                   # audio visualizer
+spotify                                                # proprietary music streaming service
+spicetify-cli                                          # cli to customize spotify client
+lyricify                                               # cli to fetch lyrics from Spotify
+
+# --------------------------------------------------- Apps
+localsend                                              # Share files and folders locally
+nautilus-python                                        # Python bindings for Nautilus
+neovim                                                 # vim based text editor
+neovide                                                # Neovim GUI Client
+docker                                                 # Pack, ship and run applications as lightweight containers
+docker-compose                                         # Define and run multi-container applications with Docker
+docker-buildx                                          # Docker CLI plugin for extended build capabilities
+lazydocker                                             # Docker UI for terminal
+ufw-docker                                             # UFW integration for Docker
+qbittorrent                                            # BitTorrent client
+
+# --------------------------------------------------- zsh
+bat|zsh                                                # enhanced version of cat
+eza|zsh                                                # file lister for zsh
+duf|zsh                                                # prettier version of df for zsh
+
+# --------------------------------------------------- Editor
+visual-studio-code-bin                                 # MS text editor
+visual-studio-code-insiders-bin                        # MS text editor
+antigravity-ide                                        # An agentic development platform from Google, evolving the IDE into the agent-first era
+antigravity-cli                                        # Google's agentic development platform (CLI companion)
+antigravity                                            # Google Antigravity 2.0 multi-agent orchestration platform
+luarocks                                               # Package manager for Lua modules
+zed                                                    # A high-performance, multiplayer code editor from the creators of Atom and Tree-sitter
+helix                                                  # A post-modern modal text editor
+emacs-wayland                                          # Extensible, customizable, self-documenting real-time display editor (pure GTK3 / Wayland)
+cmake                                                  # Build system, dependency for compiling emacs-vterm
+libvterm                                               # Terminal emulator library for emacs-vterm native module
+libtool                                                # Generic library support script, dependency for compiling emacs-vterm
+mu                                                     # Mail directory indexer/searcher (includes mu4e)
+pass                                                   # Password store integration for Emacs
+isync                                                  # mbsync for mu4e mail sync
+msmtp                                                  # SMTP client for mu4e outgoing mail
+wtype                                                  # Wayland text typing for emacs-everywhere
+xdotool                                                # X11 automation fallback
+ffmpegthumbnailer                                      # Dired video thumbnail previews
+poppler                                                # PDF utilities
+mediainfo                                              # Media metadata for dired previews
+graphviz                                               # Graph visualization utilities
+aspell                                                 # Spell checker for flyspell
+aspell-en                                              # English dictionary for aspell
+aspell-es                                              # Spanish dictionary for aspell
+sqlite                                                 # Database engine for org-roam
+wmctrl                                                 # Command line tool to interact with EWMH/NetWM compatible X Window Managers
+ledger                                                 # Double-entry accounting system for ledger-mode
+t3code-bin                                             # T3 Code desktop app packaged from the upstream AppImage
+
+# --------------------------------------------------- LSP & Formatters
+biome                                                  # Linter/formatter for JS, TS, JSON, CSS
+marksman                                               # Markdown LSP
+nil-git                                                # Nix LSP
+alejandra                                              # Nix formatter
+tailwindcss-language-server                            # Tailwind CSS LSP
+vue-language-server                                    # Vue LSP
+oxfmt-bin                                              # JS ecosystem formatter
+astrojs-language-server                                # Astro LSP
+
+# --------------------------------------------------- Development Tools
+go                                                     # Go programming language (emacs-launcher, etc.)
+gcc                                                    # The GNU Compiler Collection
+make                                                   # GNU utility to maintain groups of programs
+pkgconf                                                # Package compiler configuration utility
+python                                                 # Next generation of the python high-level scripting language
+nodejs                                                 # Event-driven I/O framework for the V8 JavaScript engine
+pnpm                                                   # Fast, disk space efficient package manager
+statix-git                                             # Linter/code analysis for Nix
+meld                                                   # Visual diff and merge tool
+
+# --------------------------------------------------- Driver for my Intel HD Graphics 530
+vulkan-intel                                           # Vulkan driver for Intel GPUs
+lib32-vulkan-intel
+intel-media-driver
+libva-utils
+
+# --------------------------------------------------- Git
+github-cli                                             # The GitHub CLI tool
+git                                                    # Fast, scalable, distributed revision control system
+git-lfs                                                # Git extension for versioning large files
+gitkraken                                              # The intuitive, fast, and beautiful cross-platform Git client
+gitkraken-cli                                          # The intuitive, fast, and beautiful cross-platform Git client
+lazygit                                                # Simple terminal UI for git commands
+
+# --------------------------------------------------- Dotbare
+dotbare                                                # Manage your dotfiles interactively with fzf
+diff-so-fancy                                          # Fancy git diff preview
+git-delta                                              # Fancy git diff preview
+hunk-bin                                               # Review-first terminal diff viewer
+highlight                                              # Syntax highlighting when previewing files
+ruby-coderay                                           # highlighting when previewing files
+tree                                                   # Provide a directory tree view when finding directory
+
+# --------------------------------------------------- mise
+libyaml                                                # YAML 1.1 library
+mise                                                   # The front-end to your dev env
+
+# --------------------------------------------------- fonts
+ttf-firacode-nerd
+maplemono-nf-unhinted                                  # Maple Mono NF (Nerd Font, ligatures) — fuente principal de Zed
