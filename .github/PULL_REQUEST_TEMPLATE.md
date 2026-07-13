@@ -6,7 +6,7 @@ Please read these instructions and remove unnecessary text.
 
 - Try to include a summary of the changes and which issue is fixed.
 - Also include relevant motivation and context (if applicable).
-- Make sure to make PR against dev and not the master
+- Make sure the PR targets `master`; direct commits to `master` are not allowed.
 - List any dependencies that are required for this change. (e.g., packages or other PRs)
 - Provide a link if there is an issue related to this pull request. e.g., Fixes # (issue)
 - Please add Reviewers, Assignees, Labels, Projects, and Milestones to the PR. (if applicable)
