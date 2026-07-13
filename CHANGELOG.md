@@ -23,6 +23,9 @@ RaVN does not yet publish versioned releases, so completed work remains under
   ([#18](https://github.com/robert-flo/Valhalla/pull/18)).
 - Added the repository validation tools and shell utility dependencies to the
   RaVN package manifest ([#19](https://github.com/robert-flo/Valhalla/pull/19)).
+- Added a staged-shell pre-commit gate with safe formatting, lint reporting,
+  and worktree-aware diagnostics
+  ([#23](https://github.com/robert-flo/Valhalla/pull/23)).
 
 ### Changed
 
