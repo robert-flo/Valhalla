@@ -27,6 +27,13 @@ Thank you for your interest in contributing to Community Standards! We welcome a
      git config core.hooksPath .git-hooks
      ```
 
+   - When using VS Code, open the repository root. The included workspace
+     checks new and modified shell scripts automatically. Use the
+     `shellcheck: full audit` task only when you intentionally need to inspect
+     inherited scripts as well. Extend the changed-file exclusions in the
+     workspace helper and the editor exclusions in the workspace settings when
+     a legacy path is intentionally out of scope.
+
 3. Create a new branch for your changes.
 
    - For example, to create a new branch named `your-branch-name`, use the following command.

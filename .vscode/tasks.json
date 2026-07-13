@@ -1,0 +1,75 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "shellcheck: changed",
+      "type": "shell",
+      "command": ".vscode/shellcheck.sh changed",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/usr/bin/bash",
+          "args": ["-c"]
+        }
+      },
+      "problemMatcher": {
+        "owner": "shellcheck",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.*?):(\\d+):(\\d+):\\s+(error|warning|info|style|note):\\s+(.*)\\s+\\[(SC\\d+)\\]$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5,
+          "code": 6
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "runOptions": {
+        "instanceLimit": 1,
+        "runOn": "folderOpen"
+      }
+    },
+    {
+      "label": "shellcheck: full audit",
+      "type": "shell",
+      "command": ".vscode/shellcheck.sh full",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/usr/bin/bash",
+          "args": ["-c"]
+        }
+      },
+      "problemMatcher": {
+        "owner": "shellcheck-full",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.*?):(\\d+):(\\d+):\\s+(error|warning|info|style|note):\\s+(.*)\\s+\\[(SC\\d+)\\]$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5,
+          "code": 6
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "runOptions": {
+        "instanceLimit": 1
+      }
+    }
+  ]
+}
