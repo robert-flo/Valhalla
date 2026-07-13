@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Hypr: removed 'hypr.altab.py' as it is too slow and and use 'hypr.altab.lua' instead. Test using 'hyde-shell altab' to see if it works!
 
 ### Added
+- RaVN: Adopted a protected, master-only pull request workflow with repository validation.
 - RaVN: Added `git-bare-clone` to bootstrap a bare repository and upstream-tracking worktrees for all remote branches.
 - Core: Use 'rsync' for file copy operations. Only recommended if users already have 'rsync' installed.
 - Package Manager: Added --no-confirm flag to 'hyde-shell pm.py' commands.

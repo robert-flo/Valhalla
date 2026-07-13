@@ -51,12 +51,13 @@ Thank you for your interest in contributing to Community Standards! We welcome a
      git push origin your-branch-name
      ```
 
-7. Submit a **pull request** to the upstream repository.
-   - **Important**: Always submit your pull requests to the `dev` branch, **not** directly to `master`. Following the [RELEASE_POLICY.md](https://github.com/HyDE-Project/HyDE/blob/master/RELEASE_POLICY.md), changes go through the dev branch first for testing before being merged into master during the release window.
+7. Submit a **pull request** targeting `master`. Direct commits and pushes to
+   `master` are not allowed; every change must be reviewed and validated through
+   a pull request as described in [RELEASE_POLICY.md](RELEASE_POLICY.md).
    - For example, to create a pull request, use the following steps.
      1. Go to your forked repository.
      2. Click the **Compare & pull request** button next to your `your-branch-name` branch.
-     3. Make sure the base repository branch is set to `dev`.
+     3. Make sure the base repository branch is set to `master`.
      4. Run pre-commit checks `pre-commit run --all-files`.
      5. Add a title and description for your pull request.
      6. Click **Create pull request** and remember to add the relevant labels with using the [pull request template](https://github.com/HyDE-Project/HyDE/blob/master/.github/PULL_REQUEST_TEMPLATE.md).
