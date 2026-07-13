@@ -1,5 +1,9 @@
 # Guía de la carpeta `.github`
 
+La política canónica de ramas y pull requests está definida en
+[`RELEASE_POLICY.md`](RELEASE_POLICY.md). Esta guía explica cómo la carpeta
+`.github` implementa y acompaña esa política.
+
 ## Política aplicada en este repositorio
 
 Este hardfork utiliza `master` como única rama permanente de integración. No

@@ -1,5 +1,9 @@
 # Pull Request and Branching Policy
 
+This file is the canonical source for the repository's branch and pull-request
+policy. Other contribution documents provide contextual instructions and link
+back to this policy.
+
 ## Branch model
 
 This repository uses `master` as its only permanent integration branch. It does
