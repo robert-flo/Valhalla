@@ -32,7 +32,8 @@ Please put an `x` in the boxes that apply:
 - [ ] My commit message follows the [commit guidelines](https://github.com/HyDE-Project/HyDE/blob/master/COMMIT_MESSAGE_GUIDELINES.md).
 - [ ] My change requires a change to the documentation.
 - [ ] I have updated the documentation accordingly.
-- [ ] I have added a changelog entry.
+- [ ] I used a concise, user-facing title so changelog automation can generate
+      the entry, or applied `changelog:skip` when no entry is appropriate.
 - [ ] I have added necessary comments/documentation to my code.
 - [ ] I have added tests to cover my changes.
 - [ ] I have tested my code locally and it works as expected.

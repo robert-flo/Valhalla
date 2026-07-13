@@ -19,6 +19,21 @@ Thank you for your interest in contributing to Community Standards! We welcome a
      git clone https://github.com/HyDE-Project/HyDE.git
      ```
 
+   - Enable the repository-owned commit hooks once inside the clone. The shell
+     quality gate requires `shfmt` and `shellcheck`, which are included in the
+     RaVN core package manifest.
+
+     ```bash
+     git config core.hooksPath .git-hooks
+     ```
+
+   - When using VS Code, open the repository root. The included workspace
+     checks new and modified shell scripts automatically. Use the
+     `shellcheck: full audit` task only when you intentionally need to inspect
+     inherited scripts as well. Extend the changed-file exclusions in the
+     workspace helper and the editor exclusions in the workspace settings when
+     a legacy path is intentionally out of scope.
+
 3. Create a new branch for your changes.
 
    - For example, to create a new branch named `your-branch-name`, use the following command.
@@ -37,9 +52,18 @@ Thank you for your interest in contributing to Community Standards! We welcome a
 
 5. Code should be documented where appropriate.
 
-- Changes compared to the latest HyDE release which have a direct effect on the user (opposed to things like code refactorings or documentation/tests) additionally need to be documented in the `CHANGELOG.md`
-- The existing entries should be used as a style guideline.
-- The change log should be used to document changes from a user-perspective, instead of explaining the technical background (like commit messages) More information about HyDE's change log format can be found [here](https://keepachangelog.com/).
+- For internal pull requests, changelog entries are generated automatically in
+  the pull-request branch. Use a concise, user-facing pull-request title; the
+  title becomes the entry under `Unreleased`. A leading `<number> - ` prefix is
+  removed automatically.
+- The default category is `Changed`. Apply exactly one of
+  `changelog:added`, `changelog:changed`, `changelog:fixed`,
+  `changelog:removed`, `changelog:security`, or `changelog:deprecated` to
+  choose another category.
+- Apply `changelog:skip` only when the pull request should have no user-facing
+  changelog entry, such as documentation-only or test-only work.
+- Do not edit the generated entry manually. Edit the pull-request title or its
+  changelog label and the automation will update the entry idempotently.
 
 5.1. **Optional But Recommended: Test with HydeVM** - You can test your changes in a VM using [HydeVM](Scripts/hydevm/README.md) before submitting.
 
@@ -58,7 +82,9 @@ Thank you for your interest in contributing to Community Standards! We welcome a
      1. Go to your forked repository.
      2. Click the **Compare & pull request** button next to your `your-branch-name` branch.
      3. Make sure the base repository branch is set to `master`.
-     4. Run pre-commit checks `pre-commit run --all-files`.
+     4. Confirm the repository pre-commit hook passed for every commit. Do not
+        run `pre-commit run --all-files` as the normal validation flow: this
+        hardfork intentionally validates only the applicable staged files.
      5. Add a title and description for your pull request.
      6. Click **Create pull request** and remember to add the relevant labels with using the [pull request template](https://github.com/HyDE-Project/HyDE/blob/master/.github/PULL_REQUEST_TEMPLATE.md).
 
