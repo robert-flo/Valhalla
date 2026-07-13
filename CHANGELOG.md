@@ -26,6 +26,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 - Added a staged-shell pre-commit gate with safe formatting, lint reporting,
   and worktree-aware diagnostics
   ([#23](https://github.com/robert-flo/Valhalla/pull/23)).
+- Added a VS Code workspace for validating changed and new shell scripts
+  ([#26](https://github.com/robert-flo/Valhalla/pull/26)).
 
 ### Changed
 
