@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+# ═══════════════════════════════════════════════════════════════
+# 🔒 PRE-COMMIT HOOK - SHELL FORMAT AND LINT GATE
+# ═══════════════════════════════════════════════════════════════
+# - shfmt:      auto-fixes formatting in place, re-stages changed files
+# - shellcheck: blocks on warnings, generates an AI-ready report
+#
+# Escape hatch: SKIP_HOOKS=1 git commit
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# ──── Escape Hatch ──────────────────────────────────────────────
+if [[ ${SKIP_HOOKS:-0} == "1" ]]; then
+  printf "  \033[2m⊘ pre-commit hooks skipped (SKIP_HOOKS=1)\033[0m\n"
+  exit 0
+fi
+
+PASS=1
+
+# Get all staged files that are not deleted and are shell scripts
+STAGED_FILES=()
+while IFS= read -r -d '' file; do
+  [[ ! -f $file ]] && continue
+
+  # Transitional exclusions for inherited upstream files. Remove entries only
+  # after the corresponding scripts have been formatted and linted separately.
+  if [[ $file == Configs/.config/uwsm/* ]] ||
+     [[ $file == Configs/.config/waybar/* ]] ||
+     [[ $file == Configs/.local/lib/* ]] ||
+     [[ $file == Configs/.local/share/wallbash/* ]] ||
+     [[ $file == Configs/.local/share/waybar/* ]] ||
+     [[ $file == "Configs/.config/hyde/wallbash/scripts/code.sh" ]] ||
+     [[ $file == Scripts/extra/* ]] ||
+     [[ $file == "Scripts/chaotic_aur.sh" ]] ||
+     [[ $file == "Scripts/global_fn.sh" ]] ||
+     [[ $file == "Scripts/ravn/global_fn.sh" ]] ||
+     [[ $file == "Scripts/install_pre.sh" ]] ||
+     [[ $file == "Scripts/install_pst.sh" ]] ||
+     [[ $file == "Scripts/restore_cfg.sh" ]] ||
+     [[ $file == "Scripts/restore_shl.sh" ]] ||
+     [[ $file == "Scripts/uninstall.sh" ]]; then
+    continue
+  fi
+
+  if [[ $file == *.sh ]]; then
+    STAGED_FILES+=("$file")
+  else
+    first_line=$(head -n 1 -- "$file" 2> /dev/null || true)
+    if [[ $first_line =~ ^#\!.*(bash|sh) ]]; then
+      STAGED_FILES+=("$file")
+    fi
+  fi
+done < <(git diff --name-only -z --cached --diff-filter=d 2> /dev/null || true)
+
+printf "\n\033[36m🔒 pre-commit · shell quality gate\033[0m\n"
+printf "\033[36m────────────────────────────────────────────────────────────────────────────────\033[0m\n"
+
+if ((${#STAGED_FILES[@]} == 0)); then
+  printf "  \033[2m✓ no staged shell files to check\033[0m\n\n"
+  exit 0
+fi
+
+# Both tools are required when shell files are staged: silently skipping them
+# would turn this quality gate into a machine-dependent check.
+MISSING_TOOLS=()
+for tool in shfmt shellcheck; do
+  command -v "$tool" > /dev/null 2>&1 || MISSING_TOOLS+=("$tool")
+done
+
+if ((${#MISSING_TOOLS[@]} > 0)); then
+  printf "\033[31m  ✗ missing required tool(s):\033[0m %s\n\n" "${MISSING_TOOLS[*]}"
+  exit 1
+fi
+
+# Formatting and re-staging a partially staged file would also add its
+# unrelated working-tree changes. Refuse the commit instead of violating the
+# user's selected commit boundary.
+PARTIALLY_STAGED=()
+for file in "${STAGED_FILES[@]}"; do
+  git diff --quiet -- "$file" || PARTIALLY_STAGED+=("$file")
+done
+
+if ((${#PARTIALLY_STAGED[@]} > 0)); then
+  printf "\033[31m  ✗ partially staged shell file(s) detected:\033[0m\n"
+  printf "    - %s\n" "${PARTIALLY_STAGED[@]}"
+  printf "\n  Stage or discard their remaining changes before committing.\n\n"
+  exit 1
+fi
+
+# ═══════════════════════════════════════════════════════════════
+# 🎨 STEP 1 - SHFMT: Auto-format, re-stage if changed
+# ═══════════════════════════════════════════════════════════════
+printf "  shfmt format...              "
+
+RESTAGED=0
+for file in "${STAGED_FILES[@]}"; do
+  if ! SHFMT_OUT=$(shfmt -i 2 -sr -kp -ci -w -- "$file" 2>&1); then
+    printf "\033[31m✗ failed\033[0m\n"
+    printf "\n%s\n" "$SHFMT_OUT"
+    exit 1
+  fi
+
+  if ! git diff --quiet -- "$file"; then
+    git add -- "$file"
+    RESTAGED=$((RESTAGED + 1))
+  fi
+done
+
+if ((RESTAGED > 0)); then
+  printf "\033[33m✎ reformatted %d file(s) — re-staged\033[0m\n" "$RESTAGED"
+else
+  printf "\033[32m✓\033[0m\n"
+fi
+
+# ═══════════════════════════════════════════════════════════════
+# 🔎 STEP 2 - SHELLCHECK: Block on warnings
+# ═══════════════════════════════════════════════════════════════
+printf "  shellcheck lint...           "
+
+SHELLCHECK_OUT=""
+if SHELLCHECK_OUT=$(shellcheck -- "${STAGED_FILES[@]}" 2>&1); then
+  printf "\033[32m✓\033[0m\n"
+else
+  printf "\033[31m✗ warnings found\033[0m\n"
+  PASS=0
+fi
+
+# ═══════════════════════════════════════════════════════════════
+# 📝 REPORT - Generate AI-ready log on failure
+# ═══════════════════════════════════════════════════════════════
+if ((PASS == 0)); then
+  # Centralize diagnostics in the repository's common Git metadata. Reports
+  # remain available after a temporary worktree is removed, and the absolute
+  # path printed below can be passed directly to an agent.
+  REPORT_DIR="$(git rev-parse --path-format=absolute --git-common-dir)/hook-reports"
+  mkdir -p "$REPORT_DIR"
+  LOG_FILE="$REPORT_DIR/shellcheck-report-$(date '+%Y%m%d-%H%M%S').log"
+
+  {
+    echo "═══════════════════════════════════════════════════════════════"
+    echo "  SHELL QUALITY REPORT — $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "  Repo: $(git remote get-url origin 2> /dev/null || echo 'local')"
+    echo "  Branch: $(git branch --show-current 2> /dev/null || echo 'unknown')"
+    echo "═══════════════════════════════════════════════════════════════"
+    echo ""
+    echo "──── Staged Files ──────────────────────────────────────────────"
+    for file in "${STAGED_FILES[@]}"; do
+      echo "  - $file"
+    done
+    echo ""
+    echo "──── Shellcheck Warnings ───────────────────────────────────────"
+    echo "$SHELLCHECK_OUT"
+    echo ""
+    echo "═══════════════════════════════════════════════════════════════"
+    echo "  AI PROMPT"
+    echo "═══════════════════════════════════════════════════════════════"
+    echo ""
+    echo "I have an Arch Linux-based shell utility dotfiles repository."
+    echo "The pre-commit hook found shellcheck lint warnings shown above. Please:"
+    echo ""
+    echo "1. Explain what each warning means in the context of bash development."
+    echo "2. Show the exact fix for each warning with a code snippet."
+    echo "3. Confirm if any warnings are safe to ignore/disable with inline comments"
+    echo "   (e.g., # shellcheck disable=SCxxxx)."
+    echo ""
+    echo "Files involved:"
+    for file in "${STAGED_FILES[@]}"; do
+      echo "  - $file"
+    done
+  } > "$LOG_FILE"
+
+  printf "\n\033[31m  ✗ commit blocked — shellcheck warnings must be resolved\033[0m\n"
+  printf "\n  \033[33m📋 AI report saved:\033[0m\n"
+  printf "     \033[2m%s\033[0m\n" "$LOG_FILE"
+  printf "\n  \033[2mFix the warnings, then commit again.\033[0m\n"
+  printf "  \033[2mTo skip hooks (emergency): SKIP_HOOKS=1 git commit\033[0m\n\n"
+  exit 1
+fi
+
+printf "\n\033[32m  ✓ all checks passed\033[0m\n\n"
+exit 0

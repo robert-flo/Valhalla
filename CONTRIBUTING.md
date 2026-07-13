@@ -19,6 +19,14 @@ Thank you for your interest in contributing to Community Standards! We welcome a
      git clone https://github.com/HyDE-Project/HyDE.git
      ```
 
+   - Enable the repository-owned commit hooks once inside the clone. The shell
+     quality gate requires `shfmt` and `shellcheck`, which are included in the
+     RaVN core package manifest.
+
+     ```bash
+     git config core.hooksPath .git-hooks
+     ```
+
 3. Create a new branch for your changes.
 
    - For example, to create a new branch named `your-branch-name`, use the following command.
@@ -58,7 +66,9 @@ Thank you for your interest in contributing to Community Standards! We welcome a
      1. Go to your forked repository.
      2. Click the **Compare & pull request** button next to your `your-branch-name` branch.
      3. Make sure the base repository branch is set to `master`.
-     4. Run pre-commit checks `pre-commit run --all-files`.
+     4. Confirm the repository pre-commit hook passed for every commit. Do not
+        run `pre-commit run --all-files` as the normal validation flow: this
+        hardfork intentionally validates only the applicable staged files.
      5. Add a title and description for your pull request.
      6. Click **Create pull request** and remember to add the relevant labels with using the [pull request template](https://github.com/HyDE-Project/HyDE/blob/master/.github/PULL_REQUEST_TEMPLATE.md).
 
