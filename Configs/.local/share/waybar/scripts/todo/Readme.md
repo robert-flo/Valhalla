@@ -14,7 +14,7 @@ A lightweight, customizable todo list manager integrated with Waybar. Manage you
 - **Tooltip Display**: View all tasks in the Waybar tooltip
 - **Conflict Resolution**: Smart priority handling when adding tasks
 
-## Preview 
+## Preview
 
 **Showing all tooltip, rofi ui and terminal ui**
 
@@ -24,15 +24,11 @@ A lightweight, customizable todo list manager integrated with Waybar. Manage you
 https://github.com/user-attachments/assets/582d1342-164d-4cb3-9672-490800061148
 
 
-![img](/preview/img2.png)
-
 **Settings UI**
-
-![img](/preview/img6.png)
 
 **To get my waybar config with all of my cool scripts** [modern-labwc](https://github.com/Harsh-bin/modern-labwc/)
 
-## Installation 
+## Installation
 
 1. Clone the repository:
 ```bash
@@ -49,7 +45,7 @@ chmod +x ~/.config/waybar/scripts/todo/*.sh
 > [!CAUTION]
 > The bash script is configured to use `$HOME/.config/waybar/scripts/todo` (as the TODO_DIR variable). So, you can use the suggested installation step or modify it as needed. <br></br>
 
-3. Add the module to your Waybar configuration: 
+3. Add the module to your Waybar configuration:
 ```jsonc
 {
       "custom/todo":
@@ -85,7 +81,7 @@ example if you add module as `"custom/todo":`
 NOTE: if you change name of module such as `"custom/tasks":` then css class will become
 
 ```
-/* todo is chaged to tasks */ 
+/* todo is chaged to tasks */
 #custom-tasks.pending {
     background-color: #FF0000;
     color: #00000;
@@ -94,7 +90,7 @@ NOTE: if you change name of module such as `"custom/tasks":` then css class will
 
 ## Usage if you use my `configuration`.
 
-- **Right Click**: Open the interactive 
+- **Right Click**: Open the interactive
 - **Middle Click**: Delete all task or Delete all completed task (configurable)
 - **Double Click**: Mark task complete
 

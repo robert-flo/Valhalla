@@ -43,7 +43,8 @@
         "modules": [
             "wlr/taskbar",
             "idle_inhibitor",
-            "clock"
+            "clock",
+            "custom/weather"
         ]
     },
     "group/pill#center4": {

@@ -140,7 +140,7 @@ generate_waybar_output() {
 			local remaining_days=$((remaining_secs / 86400))
 			local total_secs=$((end_secs - start_secs))
 			local pct=0
-			if [ "$total_secs" -gt 0 ]; then pct=$((remaining_secs * 100 / total_secs)); fi
+			if [ "$total_secs" -gt 0 ]; then pct=$(bc <<<"scale=0; ($remaining_secs * 100) / $total_secs"); fi
 			[ "$pct" -gt 100 ] && pct=100
 			[ "$pct" -lt 0 ] && pct=0
 			left_info="$remaining_days days ($pct%)"
@@ -167,21 +167,21 @@ generate_waybar_output() {
 	local tooltip_body
 	tooltip_body=$(echo "$raw_data" | column -t -s '|' | awk -v ec="$expired_color" '
     BEGIN { }
-    /^H/ { 
-        sub(/^H  /, ""); 
+    /^H/ {
+        sub(/^H  /, "");
         print "<b>" $0 "</b>"
-        next 
+        next
     }
-    /^G/ { 
+    /^G/ {
         print ""
         next
     }
-    /^A/ { 
-        sub(/^A  /, ""); 
-        print $0 
+    /^A/ {
+        sub(/^A  /, "");
+        print $0
     }
-    /^E/ { 
-        sub(/^E  /, ""); 
+    /^E/ {
+        sub(/^E  /, "");
         print "<span foreground=\"" ec "\">" $0 "</span>"
     }
     ')
@@ -209,8 +209,8 @@ generate_waybar_output() {
 
 	if [ "$total_secs" -gt 0 ]; then
 		local completed_secs=$((now_secs - start_secs))
-		json_percentage=$((completed_secs * 100 / total_secs))
-		display_percentage=$((remaining_secs * 100 / total_secs))
+		json_percentage=$(bc <<<"scale=0; ($completed_secs * 100) / $total_secs")
+		display_percentage=$(bc <<<"scale=2; ($remaining_secs * 100) / $total_secs")
 	fi
 
 	[ "$json_percentage" -gt 100 ] && json_percentage="100"
@@ -218,7 +218,8 @@ generate_waybar_output() {
 
 	local text=""
 	if [ "$format" == "percentage" ]; then
-		text="$short_label - $display_percentage% left"
+		text_percentage=${display_percentage%.00}
+		text="$short_label - $text_percentage% left"
 	else
 		text="$short_label - $remaining_days days left"
 	fi

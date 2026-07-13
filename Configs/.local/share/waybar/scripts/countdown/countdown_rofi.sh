@@ -74,23 +74,23 @@ generate_categorized_list() {
 
 	echo "$raw_data" | column -t -s '|' | awk -v ec="$expired_color" -v sc="$seperator_color" '
     BEGIN { }
-    /^H/ { 
-        sub(/^H  /, ""); 
+    /^H/ {
+        sub(/^H  /, "");
         print "<tt><b>" $0 "</b></tt>"
         print "<tt> </tt>"
-        next 
+        next
     }
     /^G/ {
         # Gap Line
         print ""
         next
     }
-    /^A/ { 
-        sub(/^A  /, ""); 
+    /^A/ {
+        sub(/^A  /, "");
         print "<tt>" $0 "</tt>"
     }
-    /^E/ { 
-        sub(/^E  /, ""); 
+    /^E/ {
+        sub(/^E  /, "");
         print "<span foreground=\"" ec "\"><tt>" $0 "</tt></span>"
     }
     END {

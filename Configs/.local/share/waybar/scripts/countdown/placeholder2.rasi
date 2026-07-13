@@ -15,7 +15,7 @@ configuration {
     hover-select: true;
     me-select-entry: "";
     me-accept-entry: "MousePrimary";
-} 
+}
 
 /*****----- Main Window -----*****/
 window {
@@ -41,19 +41,19 @@ mainbox {
 
 input-wrapper {
     orientation:                 vertical;
-    expand:                      false; 
+    expand:                      false;
     padding:                     20px;
     spacing:                     10px;
     background-color:            @background;
     border-radius:               12px;
     border:                      1px;
-    border-color:                @hover; 
+    border-color:                @hover;
     children:                    [ "message", "inputbar" ];
 }
 
 /*****----- Message Text -----*****/
 message {
-    padding:                     0px 0px 10px 0px; 
+    padding:                     0px 0px 10px 0px;
     margin:                      0px;
     background-color:            transparent;
     border:                      0px;
@@ -72,12 +72,12 @@ inputbar {
     padding:                     5px;
     margin:                      0px;
     background-color:            transparent;
-    border:                      0px;     
+    border:                      0px;
     children:                    [ "entry" ];
 }
 
 entry {
-    background-color:            @background-alt; 
+    background-color:            @background-alt;
     text-color:                  @foreground;
     cursor:                      text;
     placeholder:                 ""  ;

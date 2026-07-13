@@ -10,11 +10,11 @@
     "$XDG_CONFIG_HOME/waybar/includes/includes.json"
   ],
   "modules-left": [
-"group/pill#left1",
-"group/pill#left2",
-"group/pill#left3",
-"group/pill#spotify"
-],
+    "group/pill#left1",
+    "group/pill#left2",
+    "group/pill#left3",
+    "group/pill#spotify"
+  ],
   "group/pill#left1": {
     "orientation": "inherit",
     "modules": ["cpu", "memory", "custom/cpuinfo", "custom/gpuinfo"]
@@ -34,8 +34,8 @@
   },
   "modules-right": [
     "group/pill#right1",
-        "group/pill#todo",
-        "group/pill#countdown",
+    "group/pill#todo",
+    "group/pill#countdown",
     "group/pill#right2",
     "group/pill#right3"
   ],
@@ -63,28 +63,27 @@
       "custom/theme",
       "custom/wbar",
       "custom/cliphist",
-            "custom/screenrecording",
+      "custom/screenrecording",
       "custom/hyde-menu",
       "custom/power"
     ]
   },
-    "group/pill#todo": {
-        "modules": [
-            "custom/todo"
-        ],
-        "orientation": "inherit"
-    },
-    "group/pill#countdown": {
-        "modules": [
-            "custom/countdown"
-        ],
-        "orientation": "inherit"
-    },
-
-    "group/pill#spotify": {
-        "orientation": "inherit",
-        "modules": [
-            "custom/spotify"
-        ]
-    }
+  "group/pill#todo": {
+    "modules": [
+      "custom/todo"
+    ],
+    "orientation": "inherit"
+  },
+  "group/pill#countdown": {
+    "modules": [
+      "custom/countdown"
+    ],
+    "orientation": "inherit"
+  },
+  "group/pill#spotify": {
+    "orientation": "inherit",
+    "modules": [
+      "custom/spotify"
+    ]
+  }
 }

@@ -61,21 +61,21 @@ generate_task_list_rofi() {
 	if [ -n "$rows_completed" ]; then raw_data+="$rows_completed"; fi
 
 	echo "$raw_data" | column -t -s '|' | awk -v pc="$pending_color" -v dc="$done_color" '
-    BEGIN { 
+    BEGIN {
 
     }
-    /^H/ { 
-        sub(/^H  /, ""); 
+    /^H/ {
+        sub(/^H  /, "");
         print "<tt><b>" $0 "</b></tt>"
-        next 
+        next
     }
-    /^P/ { 
-        sub(/^P  /, ""); 
-        print "<span foreground=\"" pc "\"><tt>" $0 "</tt></span>" 
+    /^P/ {
+        sub(/^P  /, "");
+        print "<span foreground=\"" pc "\"><tt>" $0 "</tt></span>"
     }
-    /^C/ { 
-        sub(/^C  /, ""); 
-        print "<span foreground=\"" dc "\"><tt>" $0 "</tt></span>" 
+    /^C/ {
+        sub(/^C  /, "");
+        print "<span foreground=\"" dc "\"><tt>" $0 "</tt></span>"
     }
     END {
         # Added padding at the bottom to prevent text cutoff

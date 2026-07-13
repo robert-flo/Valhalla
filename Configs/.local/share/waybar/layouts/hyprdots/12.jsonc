@@ -48,7 +48,8 @@
             "network",
             "pulseaudio",
             "pulseaudio#microphone",
-            "custom/updates"
+            "custom/updates",
+            "custom/weather"
         ]
     },
     "group/pill#right2": {

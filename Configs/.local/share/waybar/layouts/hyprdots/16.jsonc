@@ -41,8 +41,7 @@
             "custom/updates",
             "custom/keybindhint",
             "custom/weather",
-            "custom/gamemode",
-            "custom/weather"
+            "custom/gamemode"
         ]
     },
     "group/pill#right": {
