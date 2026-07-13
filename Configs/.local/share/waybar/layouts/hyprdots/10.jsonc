@@ -10,11 +10,13 @@
     "passthrough": false,
     "reload_style_on_change": true,
     "include": [
-        "$XDG_CONFIG_HOME/waybar/modules/*json*", 
-        "$XDG_CONFIG_HOME/waybar/includes/includes.json" 
+        "$XDG_CONFIG_HOME/waybar/modules/*json*",
+        "$XDG_CONFIG_HOME/waybar/includes/includes.json"
     ],
     // positions generated based on config.ctl //
-    "modules-left": [],
+    "modules-left": [
+        "group/pill#spotify"
+    ],
     "modules-center": [
         "group/pill#center1",
         "group/pill#center2",
@@ -41,13 +43,15 @@
         "modules": [
             "wlr/taskbar",
             "idle_inhibitor",
-            "clock"
+            "clock",
+            "custom/weather"
         ]
     },
     "group/pill#center4": {
         "orientation": "inherit",
         "modules": [
-            "custom/cliphist"
+            "custom/cliphist",
+            "custom/screenrecording"
         ]
     },
     "group/pill#center5": {
@@ -59,5 +63,27 @@
             "custom/hyde-menu"
         ]
     },
-    "modules-right": []
+    "modules-right": [
+        "group/pill#todo",
+        "group/pill#countdown"
+    ],
+    "group/pill#todo": {
+        "modules": [
+            "custom/todo"
+        ],
+        "orientation": "inherit"
+    },
+    "group/pill#countdown": {
+        "modules": [
+            "custom/countdown"
+        ],
+        "orientation": "inherit"
+    },
+
+    "group/pill#spotify": {
+        "orientation": "inherit",
+        "modules": [
+            "custom/spotify"
+        ]
+    }
 }

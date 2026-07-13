@@ -1,0 +1,9 @@
+{
+  "custom/screenrecording": {
+    "exec": "pgrep -x 'wl-screenrec|wf-recorder' >/dev/null && echo '{\"text\": \"󰻂\", \"tooltip\": \"Recording... Click to stop\", \"class\": \"active\"}' || echo '{\"text\": \"\", \"tooltip\": \"Left: Start recording | Right: Capture area\"}'",
+    "return-type": "json",
+    "interval": 2,
+    "on-click": "pgrep -x 'wl-screenrec|wf-recorder' >/dev/null && hyde-shell screenrecord --quit || hyde-shell screenrecord --start",
+    "on-click-right": "hyde-shell screenshot s"
+  }
+}

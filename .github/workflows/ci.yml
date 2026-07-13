@@ -62,6 +62,10 @@ jobs:
             fi
           done < <(git diff --name-only -z --diff-filter=ACMRT "$BASE" HEAD)
 
+      - name: Test RaVN Waybar personalizations
+        shell: bash
+        run: tests/waybar-ravn.sh
+
       - name: Check restore manifest structure
         shell: bash
         run: |

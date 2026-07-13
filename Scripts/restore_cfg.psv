@@ -72,11 +72,6 @@ P|${HOME}/.config/Code - OSS/User|settings.json|code
 P|${HOME}/.config/Code/User|settings.json|visual-studio-code-bin
 P|${HOME}/.config/VSCodium/User|settings.json|vscodium
 
- Bar 
-P|${HOME}/.config/waybar|user-style.css config.jsonc theme.css style.css|waybar
-I|${HOME}/.config/waybar|modules styles layouts menus|waybar
-S|${HOME}/.local/share|waybar|waybar
-
  Terminal 
 P|${HOME}/.config|lsd|lsd
 P|${HOME}/.config|fastfetch|fastfetch
@@ -153,6 +148,11 @@ P|${HOME}/.config/hypr|hypridle.conf|hypridle
 P|${HOME}/.config/hypr|hyprsunset.conf|hyprsunset
 
 # --------------------------------------------------- // RaVN
+
+# Waybar
+P|${HOME}/.config/waybar|user-style.css config.jsonc theme.css style.css|waybar
+I|${HOME}/.config/waybar|modules styles layouts menus|waybar
+S|${HOME}/.local/share|waybar|waybar
 
 # CLI utilities
 O|${HOME}/.local/bin|ravn-dot|bash fzf
