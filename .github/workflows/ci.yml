@@ -72,7 +72,9 @@ jobs:
 
       - name: Test pull request changelog automation
         shell: bash
-        run: tests/changelog-automation.sh
+        run: |
+          tests/changelog-automation.sh
+          tests/pr-changelog-workflow.sh
 
       - name: Check restore manifest structure
         shell: bash

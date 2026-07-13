@@ -54,7 +54,8 @@ Thank you for your interest in contributing to Community Standards! We welcome a
 
 - For internal pull requests, changelog entries are generated automatically in
   the pull-request branch. Use a concise, user-facing pull-request title; the
-  title becomes the entry under `Unreleased`.
+  title becomes the entry under `Unreleased`. A leading `<number> - ` prefix is
+  removed automatically.
 - The default category is `Changed`. Apply exactly one of
   `changelog:added`, `changelog:changed`, `changelog:fixed`,
   `changelog:removed`, `changelog:security`, or `changelog:deprecated` to

@@ -1,7 +1,7 @@
 name: Update pull request changelog
 
 on:
-  pull_request:
+  pull_request_target:
     branches:
       - master
     types:
@@ -16,6 +16,10 @@ permissions:
   contents: write
   pull-requests: read
 
+concurrency:
+  group: pr-changelog-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
 jobs:
   update:
     name: Update source branch changelog
@@ -25,11 +29,20 @@ jobs:
       github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout pull request source branch
+      - name: Checkout trusted automation from the base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: automation
+          persist-credentials: false
+
+      - name: Checkout pull request source branch without credentials
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }}
+          path: source
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Read pull request labels
         run: |
@@ -41,15 +54,18 @@ jobs:
 
       - name: Generate changelog entry
         env:
+          CHANGELOG_FILE: source/CHANGELOG.md
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           PR_TITLE: ${{ github.event.pull_request.title }}
-        run: .github/scripts/update-pr-changelog.sh
+        run: automation/.github/scripts/update-pr-changelog.sh
 
       - name: Commit changelog update to source branch
         env:
           PR_BRANCH: ${{ github.event.pull_request.head.ref }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_TOKEN: ${{ github.token }}
+        working-directory: source
         run: |
           if git diff --quiet -- CHANGELOG.md; then
             echo 'Changelog already reflects this pull request.'
@@ -58,10 +74,11 @@ jobs:
 
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git add CHANGELOG.md
           git commit -m "chore(changelog): update PR #${PR_NUMBER}"
 
           if ! git push origin "HEAD:${PR_BRANCH}"; then
-            echo '::error title=Changelog update could not be pushed::Grant GitHub Actions contents: write permission for internal pull-request branches.'
+            echo '::error title=Changelog source-branch push failed::Check branch protection, a concurrent update, or GitHub Actions contents: write permission.'
             exit 1
           fi
