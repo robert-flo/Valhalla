@@ -1,0 +1,12 @@
+{
+  "custom/todo": {
+    "format": " {}",
+    "exec": "~/.local/share/waybar/scripts/todo/todo.sh",
+    "on-double-click": "~/.local/share/waybar/scripts/todo/todo.sh --mark-done",
+    "on-click-right": "killall rofi || bash ~/.local/share/waybar/scripts/todo/todo.sh --show-rofi",
+    "on-click-middle": "~/.local/share/waybar/scripts/todo/todo.sh --middle-click",
+    "return-type": "json",
+    "interval": 5,
+    "tooltip": true
+  }
+}
