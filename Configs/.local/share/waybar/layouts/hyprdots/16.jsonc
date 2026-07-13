@@ -8,17 +8,20 @@
     "passthrough": false,
     "reload_style_on_change": true,
     "include": [
-        "$XDG_CONFIG_HOME/waybar/modules/*json*", 
-        "$XDG_CONFIG_HOME/waybar/includes/includes.json" 
+        "$XDG_CONFIG_HOME/waybar/modules/*json*",
+        "$XDG_CONFIG_HOME/waybar/includes/includes.json"
     ],
     "modules-left": [
-        "group/pill#left"
+        "group/pill#left",
+        "group/pill#spotify"
     ],
     "modules-center": [
         "group/pill#center"
     ],
     "modules-right": [
-        "group/pill#right"
+        "group/pill#right",
+        "group/pill#todo",
+        "group/pill#countdown"
     ],
     // positions generated based on config.ctl //
     "group/pill#left": {
@@ -37,6 +40,7 @@
             "clock",
             "custom/updates",
             "custom/keybindhint",
+            "custom/weather",
             "custom/gamemode",
             "custom/weather"
         ]
@@ -56,7 +60,27 @@
             "custom/cpuinfo",
             "custom/sensorsinfo",
             "custom/swaync",
+            "custom/screenrecording",
             "custom/hyde-menu"
+        ]
+    },
+    "group/pill#todo": {
+        "modules": [
+            "custom/todo"
+        ],
+        "orientation": "inherit"
+    },
+    "group/pill#countdown": {
+        "modules": [
+            "custom/countdown"
+        ],
+        "orientation": "inherit"
+    },
+
+    "group/pill#spotify": {
+        "orientation": "inherit",
+        "modules": [
+            "custom/spotify"
         ]
     }
 }

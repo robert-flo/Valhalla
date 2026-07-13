@@ -10,12 +10,13 @@
     "passthrough": false,
     "reload_style_on_change": true,
     "include": [
-        "$XDG_CONFIG_HOME/waybar/modules/*json*", 
-        "$XDG_CONFIG_HOME/waybar/includes/includes.json" 
+        "$XDG_CONFIG_HOME/waybar/modules/*json*",
+        "$XDG_CONFIG_HOME/waybar/includes/includes.json"
     ],
     // positions generated based on config.ctl //
     "modules-left": [
-        "group/pill#left"
+        "group/pill#left",
+        "group/pill#spotify"
     ],
     "group/pill#left": {
         "orientation": "inherit",
@@ -36,6 +37,8 @@
     },
     "modules-right": [
         "group/pill#right1",
+        "group/pill#todo",
+        "group/pill#countdown",
         "group/pill#right2",
         "group/pill#right3",
         "group/pill#right4"
@@ -70,8 +73,28 @@
         "orientation": "inherit",
         "modules": [
             "custom/cliphist",
+            "custom/screenrecording",
             "custom/hyde-menu",
             "custom/power"
+        ]
+    },
+    "group/pill#todo": {
+        "modules": [
+            "custom/todo"
+        ],
+        "orientation": "inherit"
+    },
+    "group/pill#countdown": {
+        "modules": [
+            "custom/countdown"
+        ],
+        "orientation": "inherit"
+    },
+
+    "group/pill#spotify": {
+        "orientation": "inherit",
+        "modules": [
+            "custom/spotify"
         ]
     }
 }
