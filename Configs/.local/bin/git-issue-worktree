@@ -1,0 +1,292 @@
+#!/usr/bin/env bash
+# ╭──────────────────────────────────────────────────────────────────────────────╮
+# │                                                                              │
+# │  ██╗███████╗███████╗██╗   ██╗███████╗    ██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗ │
+# │  ██║██╔════╝██╔════╝██║   ██║██╔════╝    ██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝ │
+# │  ██║███████╗███████╗██║   ██║███████╗    ██║ █╗ ██║██║   ██║██████╔╝█████╔╝  │
+# │  ██║╚════██║╚════██║██║   ██║╚════██║    ██║███╗██║██║   ██║██╔══██╗██╔═██╗  │
+# │  ██║███████║███████║╚██████╔╝███████║    ╚███╔███╔╝╚██████╔╝██║  ██║██║  ██╗ │
+# │  ╚═╝╚══════╝╚══════╝ ╚═════╝ ╚══════╝     ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝ │
+# │                                                                              │
+# │              Link GitHub issue to a new git worktree                        │
+# │                                                                              │
+# ╰──────────────────────────────────────────────────────────────────────────────╯
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                      git-issue-worktree — Documentación                    ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+# # DESCRIPCIÓN
+# Crea un worktree vinculado a un issue de GitHub. Usa la GitHub CLI (gh) para
+# obtener el título del issue y delega la creación del worktree a
+# git-create-worktree. El branch y el worktree comparten el nombre <num>-<slug>.
+#
+# # USO BÁSICO
+#   git-issue-worktree <issue> <slug>
+#
+# # FLUJO COMPLETO
+#   1. Verifica gh + git instalados y autenticados
+#   2. Busca el issue en GitHub por número
+#   3. Delega en git-create-worktree con branch y worktree = <num>-<slug>
+#   4. Muestra comandos siguientes: cd, commit, gh pr create
+#
+# # EJEMPLOS
+#
+#   ## Issue básico
+#   cd ~/Work/RaVN/dev
+#   git-issue-worktree 42 fix-dark-mode
+#   # → Busca issue #42, crea branch "42-fix-dark-mode"
+#   # → Worktree en ~/Work/RaVN/42-fix-dark-mode/
+#   # → Muestra comando para gh pr create
+#
+#   ## Issue desde otro directorio
+#   git-issue-worktree -r ~/Work/RaVN/dev 15 auth
+#   # → Busca issue #15 del repo en ~/Work/RaVN/dev
+#
+#   ## Con base custom (no main)
+#   git-issue-worktree -B origin/dev 33 refactor
+#   # → Branch desde origin/dev en vez de origin/main
+#
+# # COMBINACIONES
+#
+#   | Modo                                    | Comando                                              | Resultado                                             |
+#   |-----------------------------------------|------------------------------------------------------|-------------------------------------------------------|
+#   | Básico (CWD)                            | git-issue-worktree 42 fix-login                      | Crea 42-fix-login ← origin/main                      |
+#   | Especificando repo                      | git-issue-worktree -r ~/Work/Other 7 add-docs        | Worktree en ~/Work/Other/7-add-docs/                  |
+#   | Base custom                             | git-issue-worktree -B origin/dev 15 theme            | Branch desde origin/dev                               |
+#   | Flujo completo                          | git-issue-worktree 22 api-endpoint                   | + muestra gh pr create --body "Closes #22"            |
+#   | Verbose                                 | git-issue-worktree -v 10 refactor                    | Debug de cada paso                                    |
+
+set -Eeuo pipefail
+trap cleanup SIGINT SIGTERM ERR EXIT
+
+#--------------------------------#
+# import variables and functions #
+#--------------------------------#
+# Establece el directorio de trabajo del script e importa variables y funciones globales
+# desde global_fn.sh. Si no se puede cargar el archivo, el script termina con error.
+scrDir="$(dirname "$(realpath "$0")")"
+# shellcheck disable=SC1091
+if ! source "${scrDir}/global_fn.sh"; then
+  echo "Error: unable to source global_fn.sh..."
+  exit 1
+fi
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Configuration                                                                │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+# shellcheck disable=SC2034
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+script_name=$(basename "${BASH_SOURCE[0]}")
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Specific Icons                                                               │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+readonly ICON_BRANCH="󰘾"
+readonly ICON_FOLDER="󰉋"
+readonly ICON_ISSUE=""
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Helper Functions                                                             │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+die() {
+  print_error "$1"
+  exit "${2-1}"
+}
+
+cleanup() {
+  trap - SIGINT SIGTERM ERR EXIT
+}
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Usage                                                                        │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+usage() {
+  echo ""
+  echo -e "${WHITE}Usage:${NC} $script_name ${GRAY}[-h] [-v] [-r <repo>] [-B <base>]${NC} ${CYAN}<issue> <slug>${NC}"
+  echo ""
+  echo -e "  Link a GitHub issue to a new git worktree."
+  echo ""
+  echo -e "${WHITE}Arguments:${NC}"
+  echo -e "  ${CYAN}<issue>${NC}                GitHub issue number (e.g., 1, 42)"
+  echo -e "  ${CYAN}<slug>${NC}                 Short description (e.g., base-snapshot, login-fix)"
+  echo ""
+  echo -e "${WHITE}Options:${NC}"
+  echo -e "  ${CYAN}-h, --help${NC}             Print this help and exit"
+  echo -e "  ${CYAN}-v, --verbose${NC}          Print script debug info"
+  echo -e "  ${CYAN}-r, --repo${NC}    ${GRAY}<path>${NC}    Repository root directory ${GRAY}(default: current directory)${NC}"
+  echo -e "  ${CYAN}-B, --base${NC}    ${GRAY}<branch>${NC}  Base branch for new worktree ${GRAY}(default: origin/main)${NC}"
+  echo ""
+  echo -e "${WHITE}Steps performed:${NC}"
+  echo -e "  ${GRAY}1.${NC} Validate GitHub CLI is installed and authenticated"
+  echo -e "  ${GRAY}2.${NC} Fetch issue details from GitHub"
+  echo -e "  ${GRAY}3.${NC} Create worktree linked to issue"
+  echo -e "  ${GRAY}4.${NC} Display next steps for the user"
+  echo ""
+  exit 0
+}
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Argument Parsing                                                             │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+parse_params() {
+  base='origin/main'
+  repo_dir=''
+  issue_num=''
+  slug=''
+
+  while :; do
+    case "${1-}" in
+    -h | --help) usage ;;
+    -v | --verbose) set -x ;;
+    --no-color) : ;;
+    -r | --repo)
+      repo_dir="${2-}"
+      shift
+      ;;
+    -B | --base)
+      base="${2-}"
+      shift
+      ;;
+    -?*) die "Unknown option: $1" ;;
+    *) break ;;
+    esac
+    shift
+  done
+
+  args=("$@")
+  ((${#args[@]} < 2)) && usage
+
+  issue_num="${args[0]}"
+  slug="${args[1]}"
+
+  # Validate issue_num is numeric
+  if ! [[ "$issue_num" =~ ^[0-9]+$ ]]; then
+    die "Invalid issue number: ${CYAN}$issue_num${NC}. Must be numeric."
+  fi
+
+  return 0
+}
+
+parse_params "$@"
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Pre-flight Checks                                                            │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+print_header "${ICON_ISSUE} $script_name"
+
+# Check if GitHub CLI is installed
+print_section "${ICON_GEAR} [1/4] Checking dependencies"
+if ! command -v gh &>/dev/null; then
+  die "GitHub CLI (${CYAN}gh${NC}) is not installed or not in PATH. Install it from: https://cli.github.com"
+fi
+print_success "GitHub CLI found"
+
+# Check if git is installed
+if ! command -v git &>/dev/null; then
+  die "Git is not installed or not in PATH"
+fi
+print_success "Git found"
+
+# Check if git-create-worktree script exists
+if [[ ! -f "$script_dir/git-create-worktree" ]]; then
+  die "git-create-worktree script not found at ${GRAY}$script_dir/git-create-worktree${NC}"
+fi
+print_success "git-create-worktree found"
+
+# Navigate to repository if specified
+if [[ -n "$repo_dir" ]]; then
+  if [[ ! -d "$repo_dir" ]]; then
+    die "Repository directory not found: ${GRAY}$repo_dir${NC}"
+  fi
+  cd "$repo_dir" || die "Failed to change to repository directory: ${GRAY}$repo_dir${NC}"
+else
+  repo_dir="$(pwd)"
+fi
+
+# Verify we're in a git repository
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+  die "Not a git repository. Use ${CYAN}-r, --repo${NC} to specify the repository path."
+fi
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Fetch Issue Information                                                      │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+print_section "${ICON_ISSUE} [2/4] Fetching issue #$issue_num from GitHub"
+
+# Try to get issue information
+issue_data=$(gh issue view "$issue_num" --json "number,title,state" 2>/dev/null) || {
+  die "Could not fetch issue #${CYAN}$issue_num${NC}. Does it exist? (Check your repo context with ${CYAN}gh repo set-default${NC})"
+}
+
+# Parse issue data
+issue_title=$(echo "$issue_data" | jq -r '.title')
+issue_state=$(echo "$issue_data" | jq -r '.state')
+
+print_success "Issue fetched successfully"
+print_info "Title:  ${WHITE}$issue_title${NC}"
+print_info "State:  ${CYAN}$issue_state${NC}"
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Create Worktree                                                              │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+print_section "${ICON_FOLDER} [3/4] Creating worktree"
+
+worktree_name="$issue_num-$slug"
+branch_name="$worktree_name"
+
+print_info "Branch: ${CYAN}$branch_name${NC}"
+print_info "Slug:   ${CYAN}$slug${NC}"
+
+# Call git-create-worktree script
+"$script_dir/git-create-worktree" \
+  -r "$repo_dir" \
+  -B "$base" \
+  -b "$branch_name" \
+  "$worktree_name" || die "Failed to create worktree"
+
+# Construct the full path to the worktree
+# repo_dir is like ~/Work/fake/dev, we go up one level to ~/Work/fake/
+repo_parent="$(dirname "$repo_dir")"
+worktree_full_path="$repo_parent/$worktree_name"
+
+print_success "Worktree created at ${GRAY}$worktree_full_path${NC}"
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Display Next Steps                                                           │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+print_section "${ICON_ROCKET} [4/4] Next Steps"
+
+echo -e "  ${GREEN}${ICON_CHECK}${NC} ${WHITE}Issue #$issue_num${NC}       ${GRAY}→  $issue_title${NC}"
+echo -e "  ${CYAN}${ICON_FOLDER}${NC} ${GRAY}$worktree_full_path${NC}"
+echo -e "  ${CYAN}${ICON_BRANCH}${NC} ${WHITE}$branch_name${NC}       ${GRAY}→  origin/$branch_name${NC}"
+echo ""
+
+print_info "You are now in: ${CYAN}$worktree_full_path${NC}"
+echo ""
+
+echo -e "  ${WHITE}📝 To start working:${NC}"
+echo -e "     cd ${CYAN}$worktree_full_path${NC}"
+echo -e "     # Make your changes"
+echo -e "     git add ."
+echo -e "     git commit -m 'Your message'"
+echo ""
+
+echo -e "  ${WHITE}🔗 To create a Pull Request:${NC}"
+echo -e "     gh pr create --title \"${issue_title}\" \\"
+echo -e "                  --body \"Closes #${issue_num}\""
+echo ""
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Summary                                                                      │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+print_header "${ICON_ROCKET} Issue worktree ready"
+echo ""
