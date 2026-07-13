@@ -18,10 +18,10 @@ RaVN does not yet publish versioned releases, so completed work remains under
 - Add RaVN repository validation packages ([#19](https://github.com/robert-flo/Valhalla/pull/19)). <!-- changelog-pr:19 -->
 - Add a safe staged-shell pre-commit gate ([#23](https://github.com/robert-flo/Valhalla/pull/23)). <!-- changelog-pr:23 -->
 - Add a VS Code workspace for validating changed and new shell scripts ([#26](https://github.com/robert-flo/Valhalla/pull/26)). <!-- changelog-pr:26 -->
+- Add repository guidance and tooling for automated contributors ([#2](https://github.com/robert-flo/Valhalla/pull/2)). <!-- changelog-pr:2 -->
 
 ### Changed
 
-- gitignore: exclude .agents + add AGENTS.md, skills-lock, and docs ([#2](https://github.com/robert-flo/Valhalla/pull/2)). <!-- changelog-pr:2 -->
 - Keep issue worktree and branch names consistent ([#10](https://github.com/robert-flo/Valhalla/pull/10)). <!-- changelog-pr:10 -->
 - Enforce a master-only pull request workflow ([#14](https://github.com/robert-flo/Valhalla/pull/14)). <!-- changelog-pr:14 -->
 - Reset the changelog for the RaVN hardfork ([#20](https://github.com/robert-flo/Valhalla/pull/20)). <!-- changelog-pr:20 -->

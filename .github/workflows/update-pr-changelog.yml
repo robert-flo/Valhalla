@@ -11,6 +11,7 @@ on:
       - labeled
       - unlabeled
       - ready_for_review
+      - synchronize
 
 permissions:
   contents: write
@@ -39,7 +40,7 @@ jobs:
       - name: Checkout pull request source branch without credentials
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event.pull_request.head.sha }}
           path: source
           fetch-depth: 0
           persist-credentials: false
