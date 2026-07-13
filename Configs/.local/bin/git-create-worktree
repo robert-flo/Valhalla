@@ -1,0 +1,302 @@
+#!/usr/bin/env bash
+# ╭──────────────────────────────────────────────────────────────────────────────╮
+# │                                                                              │
+# │  ██╗    ██╗  ██████╗ ██████╗ ██╗  ██╗    ████████╗██████╗ ███████╗███████╗  │
+# │  ██║    ██║ ██╔═══██╗██╔══██╗██║ ██╔╝    ╚══██╔══╝██╔══██╗██╔════╝██╔════╝  │
+# │  ██║ █╗ ██║ ██║   ██║██████╔╝█████╔╝        ██║   ██████╔╝█████╗  █████╗    │
+# │  ██║███╗██║ ██║   ██║██╔══██╗██╔═██╗         ██║   ██╔══██╗██╔══╝  ██╔══╝   │
+# │  ╚███╔███╔╝ ╚██████╔╝██║  ██║██║  ██╗        ██║   ██║  ██║███████╗███████╗  │
+# │   ╚══╝╚══╝   ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝        ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝ │
+# │                                                                              │
+# │              Create a new worktree with upstream tracking                   │
+# │                                                                              │
+# ╰──────────────────────────────────────────────────────────────────────────────╯
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                       git-create-worktree — Documentación                  ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+# # DESCRIPCIÓN
+# Crea un nuevo git worktree con nombre descriptivo y tracking upstream
+# automático. Se ejecuta desde un worktree existente (ej: dev) o desde un bare
+# repo. Detecta automáticamente el directorio raíz del repo y crea el worktree
+# al mismo nivel que los existentes en ~/Work/<repo>/.
+#
+# El nombre del worktree se usa tanto para el directorio como para el branch.
+# Se puede solicitar explícitamente un prefijo para el branch con -p.
+#
+# # USO BÁSICO
+#   git-create-worktree <nombre>
+#
+# # FLUJO COMPLETO
+#   1. Determina el directorio raíz del repo (va arriba si es un worktree)
+#   2. Crea git worktree add con -b <nombre> desde <base> (default: origin/main)
+#   3. Hace push -u origin del branch nuevo
+#   4. Configura upstream tracking
+#
+# # EJEMPLOS
+#
+#   ## Feature branch
+#   cd ~/Work/RaVN/dev
+#   git-create-worktree dark-mode
+#   # → Crea branch "dark-mode" desde origin/main
+#   # → Crea worktree en ~/Work/RaVN/dark-mode/
+#   # → Push y upstream configurados
+#
+#   ## Branch con nombre custom (sin prefijo)
+#   git-create-worktree -p "" fix-login
+#   # → Crea branch "fix-login" desde origin/main
+#   # → Worktree en ~/Work/RaVN/fix-login/
+#
+#   ## Desde otra base (no main)
+#   git-create-worktree -B origin/dev hotfix-auth
+#   # → Crea branch "hotfix-auth" desde origin/dev
+#
+#   ## Sin push upstream (solo crear local)
+#   git-create-worktree -N local-experiment
+#   # → Crea branch y worktree, no hace push
+#
+#   ## Con prefijo custom
+#   git-create-worktree -p "feature/" add-login
+#   # → Crea branch "feature/add-login"
+#
+#   ## En un repo que no es el current directory
+#   cd ~/somewhere
+#   git-create-worktree -r ~/Work/RaVN/dev add-search
+#   # → Crea worktree en ~/Work/RaVN/add-search/
+#
+#   ## Branch name explícito (override del nombre del worktree)
+#   git-create-worktree -b hotfix/auth-bypass fix-security
+#   # → Crea branch "hotfix/auth-bypass", directorio "fix-security"
+#
+# # COMBINACIONES
+#
+#   | Modo                                        | Comando                                                   | Resultado                                           |
+#   |---------------------------------------------|-----------------------------------------------------------|-----------------------------------------------------|
+#   | Básico (desde worktree existente)           | git-create-worktree dark-mode                             | dark-mode ← origin/main                            |
+#   | Sin prefijo                                 | git-create-worktree -p "" fix-login                       | fix-login ← origin/main                            |
+#   | Con base custom                             | git-create-worktree -B origin/dev feat-ux                  | feat-ux ← origin/dev                               |
+#   | Sin upstream (solo local)                   | git-create-worktree -N scratch                            | Crea local, no push                                |
+#   | Desde repo remoto (no CWD)                  | git-create-worktree -r ~/Work/Other add-thing             | Worktree en ~/Work/Other/add-thing/                |
+#   | Branch name custom + directorio custom      | git-create-worktree -b fix/crash fix-segfault             | Branch fix/crash, dir fix-segfault                 |
+#   | Prefijo custom                              | git-create-worktree -p "wip/" tmp-refactor                | Branch wip/tmp-refactor ← origin/main              |
+#   | Verbose                                     | git-create-worktree -v auth                               | Debug de cada paso                                 |
+
+set -Eeuo pipefail
+trap cleanup SIGINT SIGTERM ERR EXIT
+
+#--------------------------------#
+# import variables and functions #
+#--------------------------------#
+# Establece el directorio de trabajo del script e importa variables y funciones globales
+# desde global_fn.sh. Si no se puede cargar el archivo, el script termina con error.
+scrDir="$(dirname "$(realpath "$0")")"
+# shellcheck disable=SC1091
+if ! source "${scrDir}/global_fn.sh"; then
+  echo "Error: unable to source global_fn.sh..."
+  exit 1
+fi
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Configuration                                                                │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+# shellcheck disable=SC2034
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+
+# Domain-specific icons
+readonly ICON_FOLDER="󰉋"
+readonly ICON_PUSH="󰕒"
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Usage                                                                        │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+usage() {
+  echo ""
+  echo -e "${WHITE}Usage:${NC} $(basename "${BASH_SOURCE[0]}") ${GRAY}[-h] [-v] [-r <repo>] [-b <branch>] [-B <base>] [-p <prefix>] [-N]${NC} ${CYAN}<path>${NC}"
+  echo ""
+  echo -e "  Create a new git worktree with optional upstream tracking."
+  echo ""
+  echo -e "${WHITE}Options:${NC}"
+  echo -e "  ${CYAN}-h, --help${NC}                    Print this help and exit"
+  echo -e "  ${CYAN}-v, --verbose${NC}                 Print script debug info"
+  echo -e "  ${CYAN}--no-color${NC}                    (placeholder)"
+  echo -e "  ${CYAN}-r, --repo${NC}     ${GRAY}<path>${NC}           Repository root directory ${GRAY}(default: current directory)${NC}"
+  echo -e "  ${CYAN}-N, --no-create-upstream${NC}       Skip creating or setting upstream"
+  echo -e "  ${CYAN}-b, --branch${NC}   ${GRAY}<name>${NC}           Branch name to create or checkout"
+  echo -e "  ${CYAN}-B, --base${NC}     ${GRAY}<branch>${NC}         Base branch for new worktree ${GRAY}(default: origin/main)${NC}"
+  echo -e "  ${CYAN}-p, --prefix${NC}   ${GRAY}<prefix>${NC}         Optional prefix applied only to the branch name"
+  echo ""
+  echo -e "${WHITE}Steps performed:${NC}"
+  echo -e "  ${GRAY}1.${NC} Create worktree from base branch (or attach to existing branch)"
+  echo -e "  ${GRAY}2.${NC} Push branch to remote and configure upstream tracking"
+  echo ""
+  exit 0
+}
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Argument Parsing                                                             │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+parse_params() {
+  create_upstream=1
+  prefix=""
+  base='origin/main'
+  branch=''
+  repo_dir=''
+
+  while :; do
+    case "${1-}" in
+    -h | --help) usage ;;
+    -v | --verbose) set -x ;;
+    --no-color) : ;;
+    -r | --repo)
+      repo_dir="${2-}"
+      shift
+      ;;
+    -N | --no-create-upstream) create_upstream=0 ;;
+    -b | --branch)
+      branch="${2-}"
+      shift
+      ;;
+    -B | --base)
+      base="${2-}"
+      shift
+      ;;
+    -p | --prefix)
+      prefix="${2-}"
+      shift
+      ;;
+    -?*) die "Unknown option: $1" ;;
+    *) break ;;
+    esac
+    shift
+  done
+
+  args=("$@")
+  ((${#args[@]} == 0)) && usage
+
+  if [[ -z "$branch" ]]; then
+    branch="${prefix}${args[0]}"
+  fi
+
+  worktree="${args[0]}"
+
+  return 0
+}
+
+parse_params "$@"
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Pre-flight Checks & Repository Validation                                    │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+# Navigate to repository if specified via -r/--repo flag
+if [[ -n "$repo_dir" ]]; then
+  if [[ ! -d "$repo_dir" ]]; then
+    die "Repository directory not found: ${GRAY}$repo_dir${NC}"
+  fi
+
+  cd "$repo_dir" || die "Failed to change to repository directory: ${GRAY}$repo_dir${NC}"
+fi
+
+# Verify we're in a git repository (required for all operations)
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+  die "Not a git repository. Use ${CYAN}-r, --repo${NC} to specify the repository path."
+fi
+
+# Extract repository metadata for display before changing directories
+common_dir=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || pwd)
+common_dir="${common_dir%/.git}"
+repo_name=$(basename "$common_dir")
+
+# ── Check if we're in a worktree and navigate to parent if needed ──────────────
+# This ensures new worktrees are created at the same level, not nested
+is_bare=$(git rev-parse --is-bare-repository)
+if [[ "$is_bare" == "false" ]]; then
+  # We're in a worktree - navigate to the parent directory (where worktrees live)
+  cd .. || die "Failed to navigate to worktree parent directory"
+fi
+
+print_header "${ICON_GIT} git-create-worktree"
+
+repo_path="$(pwd)"
+
+print_section "${ICON_GEAR} Configuration"
+print_info "Repository: ${WHITE}$repo_name${NC}"
+print_info "Path:       ${GRAY}$repo_path${NC}"
+print_info "Worktree:   ${WHITE}$worktree${NC}"
+print_info "Branch:     ${WHITE}$branch${NC}"
+print_info "Base:       ${GRAY}$base${NC}"
+if ((create_upstream == 1)); then
+  print_info "Upstream:   ${GREEN}enabled${NC}"
+else
+  print_info "Upstream:   ${YELLOW}disabled (--no-create-upstream)${NC}"
+fi
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Execution Steps                                                              │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+# ── Step 1/2: Create worktree ─────────────────────────────────────────────────
+print_section "${ICON_FOLDER} [1/2] Creating worktree"
+
+# Use absolute path for worktree location
+if [[ "$worktree" == /* ]]; then
+  worktree_path="$worktree"
+else
+  worktree_path="$(pwd)/$worktree"
+fi
+
+if [[ -n "$(git branch --list "$branch")" ]]; then
+  print_step "Branch ${CYAN}$branch${NC} exists locally — attaching worktree"
+  git worktree add "$worktree_path" "$branch"
+else
+  print_step "Creating new branch ${CYAN}$branch${NC} from ${GRAY}$base${NC}"
+  git worktree add -b "$branch" "$worktree_path" "$base"
+fi
+
+print_success "Worktree created at ${GRAY}$worktree_path${NC}"
+
+# ── Step 2/2: Configure upstream tracking ────────────────────────────────────
+print_section "${ICON_PUSH} [2/2] Configuring upstream"
+
+update_remote() {
+  local target_branch="$1"
+
+  if ((create_upstream == 0)); then
+    print_warn "Upstream skipped (--no-create-upstream)"
+    return 0
+  fi
+
+  print_step "Checking remote for branch ${CYAN}$target_branch${NC}"
+
+  if [[ -z "$(git ls-remote --heads origin "$target_branch")" ]]; then
+    print_step "Remote branch not found — pushing to origin"
+    git push -u origin "$target_branch"
+  else
+    print_step "Remote branch exists — setting upstream"
+    git branch --set-upstream-to="origin/$target_branch"
+  fi
+}
+
+cd "$worktree"
+update_remote "$branch"
+print_success "Upstream tracking configured"
+
+# ── Optional: Language / framework setup (uncomment as needed) ───────────────
+# print_section "${ICON_GEAR} Additional Setup"
+# print_step "Setting Node version..."    && fnm use < .nvmrc                  && print_success "Node version set"
+# print_step "Installing dependencies..." && npm --no-progress --silent install && print_success "Dependencies installed"
+# print_step "Building project..."        && npm run --silent build             && print_success "Build complete"
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Summary                                                                      │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+print_header "${ICON_ROCKET} Worktree ready"
+
+echo -e "  ${GREEN}${ICON_CHECK}${NC} ${WHITE}$branch${NC}  ${GRAY}→  origin/$branch${NC}"
+echo -e "  ${CYAN}${ICON_FOLDER}${NC} ${GRAY}$worktree_path${NC}"
+echo ""
+print_info "cd ${CYAN}$worktree_path${NC} to start working"
+echo ""
