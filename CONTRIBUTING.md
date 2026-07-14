@@ -52,18 +52,18 @@ Thank you for your interest in contributing to Community Standards! We welcome a
 
 5. Code should be documented where appropriate.
 
-- For internal pull requests, changelog entries are generated automatically in
-  the pull-request branch. Use a concise, user-facing pull-request title; the
-  title becomes the entry under `Unreleased`. A leading `<number> - ` prefix is
-  removed automatically.
-- The default category is `Changed`. Apply exactly one of
+- For internal pull requests, generate the changelog entry locally with
+  `.github/scripts/update-pr-changelog.sh`. Provide `PR_NUMBER`, `PR_URL`,
+  `PR_TITLE`, and `PR_LABELS`; a leading `<number> - ` title prefix is removed.
+- Apply exactly one of
   `changelog:added`, `changelog:changed`, `changelog:fixed`,
   `changelog:removed`, `changelog:security`, or `changelog:deprecated` to
-  choose another category.
+  select the category.
 - Apply `changelog:skip` only when the pull request should have no user-facing
   changelog entry, such as documentation-only or test-only work.
-- Do not edit the generated entry manually. Edit the pull-request title or its
-  changelog label and the automation will update the entry idempotently.
+- Review the generated entry, run the generator again to verify idempotence,
+  run `tests/changelog-automation.sh`, and commit `CHANGELOG.md` before review.
+  CI validates this commit but never writes to the pull-request branch.
 
 5.1. **Optional But Recommended: Test with RavnVM** - You can test a RaVN branch or commit in an isolated VM using [RavnVM](Scripts/ravnvm/README.md) before submitting.
 
