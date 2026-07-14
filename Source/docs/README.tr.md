@@ -145,23 +145,11 @@ RavnVM, test ve geliştirme amacıyla RaVN dal ve commit'lerini yalıtılmış b
 
 ## Hızlı Başlangıç
 
-### Arch Linux
-
 ```bash
-# İndirin ve çalıştırın (eksik paketleri otomatik olarak algılar)
-curl -L https://raw.githubusercontent.com/robert-flo/Valhalla/master/Scripts/ravnvm/ravnvm.sh -o ravnvm
-chmod +x ravnvm
-./ravnvm
-```
-
-### NixOS (veya Nix)
-
-```bash
-# Valhalla flake kullanımı
-nix run github:robert-flo/Valhalla
-
-# Veya depoyu yerel olarak klonladıysanız
-nix run .
+# Klonlayın ve çalıştırın (eksik paketleri otomatik olarak algılar)
+git clone https://github.com/robert-flo/Valhalla.git
+cd Valhalla
+Scripts/ravnvm/ravnvm.sh
 ```
 
 Daha fazla ayrıntı için lütfen [RavnVM README](Scripts/ravnvm/README.md) dosyasına bakın.

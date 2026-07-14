@@ -170,23 +170,11 @@ RavnVM permite ejecutar ramas y commits de RaVN en una máquina virtual aislada 
 
 ## Inicio rápido
 
-### Arch Linux
-
 ```bash
-# Descargar y ejecutar (detectará automáticamente los paquetes faltantes)
-curl -L https://raw.githubusercontent.com/robert-flo/Valhalla/master/Scripts/ravnvm/ravnvm.sh -o ravnvm
-chmod +x ravnvm
-./ravnvm
-```
-
-### NixOS (o Nix)
-
-```bash
-# Usando el flake de Valhalla
-nix run github:robert-flo/Valhalla
-
-# O si tiene el repositorio clonado localmente
-nix run .
+# Clonar y ejecutar (detectará automáticamente los paquetes faltantes)
+git clone https://github.com/robert-flo/Valhalla.git
+cd Valhalla
+Scripts/ravnvm/ravnvm.sh
 ```
 
 Para más detalles, consulte el [README de RavnVM](Scripts/ravnvm/README.md).

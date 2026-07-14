@@ -25,6 +25,26 @@ Single-context — un `CONTEXT.md` + `docs/adr/` en la raíz. See `docs/agents/d
 - Confirmar `CHANGELOG.md` con `chore(changelog): update PR #<número>` antes de
   solicitar revisión. CI únicamente valida el resultado y nunca escribe en la rama.
 
+### Código incorporado por RaVN
+
+Esta convención se aplica exclusivamente cuando RaVN señala de forma explícita
+código nuevo o archivos no rastreados que acaba de agregar al repositorio. En
+ese caso, se debe asumir que la implementación ya es funcional, ha sido probada
+en el uso diario y está lista para integrarse. El trabajo debe partir de ella y
+preservar su diseño, arquitectura, lenguaje visual y comportamiento reconocible.
+
+- `to-tickets <ruta>` solicita integrar el código señalado. Se permiten mejoras
+  incrementales, pero se debe conservar la esencia de la implementación y no
+  convertir la integración en una refactorización.
+- `grill-with docs <ruta>` solicita evaluar una refactorización del código
+  señalado mediante una sesión `grill-me`. No implementarla hasta alcanzar con
+  RaVN un acuerdo explícito sobre su alcance, decisiones y puntos de validación.
+- Aplicar las mejoras de forma incremental y atómica, preservando primero el
+  estado funcional aportado.
+- No convertir una integración en una reescritura sin autorización explícita.
+- Fuera de este alcance, `to-tickets` continúa siendo el funcionamiento normal
+  esperado del repositorio.
+
 ### Cambios personales RaVN
 
 `Scripts/restore_cfg.psv` contiene configuraciones upstream y configuraciones

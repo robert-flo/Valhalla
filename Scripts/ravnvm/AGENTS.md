@@ -7,8 +7,8 @@ the host working tree is not used as the VM's source code.
 # Ownership
 
 This directory owns the RavnVM CLI, interactive menu, VM lifecycle, snapshots,
-storage reporting, and executable interaction tests. It is not part of the main
-dotfiles installer pipeline.
+storage reporting, and interaction tests. It is not part of the main dotfiles
+installer pipeline.
 
 # Local Contracts
 
@@ -16,10 +16,8 @@ dotfiles installer pipeline.
 - **Interactive menu**: no-argument execution validates the environment, then
   exposes revision execution, storage, snapshots, resources, usage, and SSH.
 - **Direct CLI**: preserve `--persist`, `--list`, `--clean`, `--install-deps`,
-  `--check-deps`, `--storage`, `--ssh`, and `--help`, plus direct branch/commit
-  arguments.
-- **Make interface**: `make/dev.mk` delegates to the CLI for every VM operation;
-  do not duplicate VM execution, cache, storage, snapshot, or SSH logic there.
+  `--check-deps`, `--install-ssh-alias`, `--ssh`, and `--help`, plus direct
+  branch/commit arguments.
 - **VM defaults**: use `VM_MEMORY=4G` and `VM_CPUS=2` unless overridden for the
   current invocation or session.
 - **Repository source**: VM setup must clone or update the configured RaVN
@@ -27,12 +25,17 @@ dotfiles installer pipeline.
   local-working-tree execution path.
 - **Cache**: use `$XDG_CACHE_HOME/ravnvm/`, preserving `archbase.qcow2` when
   cleaning snapshots and temporary VM data.
-- **Visual language**: preserve the numbered-menu convention with a green
-  selection key and clear section, prompt, status, and graceful-exit feedback.
+- **Single VM session**: reject a second VM launch while another RavnVM process
+  owns the session lock; keep read-only commands and SSH access available.
+- **Make interface**: `make/dev.mk` is an alternative interaction surface over
+  the same RavnVM engine. Do not duplicate VM execution logic there.
+- **Visual language**: preserve the shared numbered-menu convention: green
+  selection key, Nerd Font icon, then action label; use the established section,
+  prompt, status, and graceful-exit helpers.
 
 # Interactive Menu Contract
 
-The menu provides:
+The menu currently provides:
 
 1. Run master branch, with ephemeral or persistent mode.
 2. Run dev branch, with ephemeral or persistent mode.
@@ -44,6 +47,7 @@ The menu provides:
 8. Configure RAM and CPU for the current session.
 9. Show the shared RavnVM usage information.
 10. Connect to the running VM through SSH.
+11. Install the optional `ssh ravnvm` host alias.
 
 Missing dependencies must be handled before the normal menu and may offer only
 dependency installation or exit. Empty snapshots, failed cleanup, missing VMs,
@@ -53,7 +57,7 @@ corrupting cached base data.
 # Work Guidance
 
 - Keep user-facing usage documentation in `README.md`; do not let help text and
-  executable behavior drift from the CLI contract.
+  menu behavior drift from the executable contract.
 - Reuse existing VM, cache, snapshot, SSH, and usage functions before adding
   new seams.
 - Keep session resource changes in memory; do not create a persistent resource
@@ -63,11 +67,15 @@ corrupting cached base data.
 
 # Verification
 
-Run the executable CLI and interaction suites:
+Run the executable interaction suite:
 
 ```bash
-Scripts/ravnvm/tests/cli.sh
 Scripts/ravnvm/tests/menu.sh
+Scripts/ravnvm/tests/interrupt.sh
+Scripts/ravnvm/tests/snapshot.sh
+Scripts/ravnvm/tests/download.sh
+Scripts/ravnvm/tests/ssh.sh
+Scripts/ravnvm/tests/session.sh
 Scripts/ravnvm/tests/make.sh
 ```
 

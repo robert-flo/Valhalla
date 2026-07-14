@@ -36,7 +36,7 @@ chmod +x "$FAKE_RAVNVM"
 export CALL_LOG
 
 help_output=$(make -s -C "$ROOT_DIR" help)
-for target in dev-vm dev-vm-persist dev-vm-list dev-vm-clean dev-vm-setup dev-vm-storage dev-vm-size dev-vm-ssh; do
+for target in dev-vm dev-vm-persist dev-vm-list dev-vm-clean dev-vm-setup dev-vm-storage dev-vm-size dev-vm-ssh dev-vm-install-ssh-alias; do
   assert_contains "$help_output" "$target"
 done
 
@@ -65,11 +65,12 @@ make -s -C "$ROOT_DIR" dev-vm RAVNVM="$FAKE_RAVNVM" GIT="$FAKE_GIT"
 assert_contains "$(< "$CALL_LOG")" "args=deadbeef"
 
 declare -A target_options=(
-     ["dev-vm-list"]=--list
-    ["dev-vm-clean"]=--clean
-    ["dev-vm-storage"]=--storage
-    ["dev-vm-size"]=--storage
-     ["dev-vm-ssh"]=--ssh
+      ["dev-vm-list"]=--list
+     ["dev-vm-clean"]=--clean
+     ["dev-vm-storage"]=--storage
+     ["dev-vm-size"]=--storage
+      ["dev-vm-ssh"]=--ssh
+     ["dev-vm-install-ssh-alias"]=--install-ssh-alias
 )
 for target in "${!target_options[@]}"; do
   make -s -C "$ROOT_DIR" "$target" RAVNVM="$FAKE_RAVNVM"

@@ -179,23 +179,11 @@ RavnVM runs RaVN branches and commits in an isolated virtual machine for testing
 
 ## Quick Start
 
-### Arch Linux
-
 ```bash
-# Download and run (will auto-detect missing packages)
-curl -L https://raw.githubusercontent.com/robert-flo/Valhalla/master/Scripts/ravnvm/ravnvm.sh -o ravnvm
-chmod +x ravnvm
-./ravnvm
-```
-
-### NixOS (or Nix)
-
-```bash
-# Using the Valhalla flake
-nix run github:robert-flo/Valhalla
-
-# Or if you have the repository cloned locally
-nix run .
+# Clone and run (will auto-detect missing packages)
+git clone https://github.com/robert-flo/Valhalla.git
+cd Valhalla
+Scripts/ravnvm/ravnvm.sh
 ```
 
 For more details, please refer to the [RavnVM README](Scripts/ravnvm/README.md).
