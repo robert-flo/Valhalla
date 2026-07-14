@@ -31,12 +31,33 @@ fi
 
 set -e
 
+ACTIVE_QEMU_PID=""
+TEMPORARY_PATHS=()
+
+function cleanup_runtime() {
+  local temporary_path=""
+
+  if [[ -n $ACTIVE_QEMU_PID ]] && kill -0 "$ACTIVE_QEMU_PID" 2> /dev/null; then
+    kill "$ACTIVE_QEMU_PID" 2> /dev/null || true
+    wait "$ACTIVE_QEMU_PID" 2> /dev/null || true
+  fi
+
+  for temporary_path in "${TEMPORARY_PATHS[@]}"; do
+    rm -f -- "$temporary_path"
+  done
+}
+
 function handle_interrupt() {
-  print_warn "RavnVM interrupted; exiting safely"
+  print_warn "RavnVM interrupted; temporary state was removed safely"
   exit 130
 }
 
-trap handle_interrupt INT
+function register_temporary_path() {
+  TEMPORARY_PATHS+=("$1")
+}
+
+trap handle_interrupt INT TERM
+trap cleanup_runtime EXIT
 
 # ┌──────────────────────────────────────────────────────────────────────────────┐
 # │ Configuration                                                                │
@@ -331,6 +352,7 @@ function run_qemu_vm() {
     local memory="${2:-4G}"
     local cpus="${3:-2}"
     local extra_args="${4:-}"
+    local execution_mode="${5:-foreground}"
     local qemu_cmd
     qemu_cmd=$(get_qemu_command)
 
@@ -340,6 +362,11 @@ function run_qemu_vm() {
         # Substitute $VM_DISK in the override command
         local qemu_override_cmd
         qemu_override_cmd=${VM_QEMU_OVERRIDE//\$VM_DISK/$vm_disk}
+        if [[ $execution_mode == "background" ]]; then
+            bash -c "exec $qemu_override_cmd" &
+            ACTIVE_QEMU_PID=$!
+            return 0
+    fi
         eval "$qemu_override_cmd"
   else
         # Build QEMU command arguments
@@ -369,6 +396,13 @@ function run_qemu_vm() {
             # shellcheck disable=SC2086
             read -ra extra_vm_args <<< "$VM_EXTRA_ARGS"
             qemu_args+=("${extra_vm_args[@]}")
+    fi
+
+        # Background mode keeps the real QEMU PID available for safe interruption.
+        if [[ $execution_mode == "background" ]]; then
+            "$qemu_cmd" "${qemu_args[@]}" 2> "$CACHE_DIR/qemu.log" &
+            ACTIVE_QEMU_PID=$!
+            return 0
     fi
 
         # Execute QEMU with all arguments and redirect stderr to log
@@ -424,10 +458,12 @@ function create_ravn_snapshot() {
 
     # Create temporary VM image for setup
     local temp_image="$CACHE_DIR/temp-setup.qcow2"
+    register_temporary_path "$temp_image"
     qemu-img create -f qcow2 -F qcow2 -b "$BASE_IMAGE" "$temp_image"
 
     # Create setup script that will be available in the VM
     local setup_script="$CACHE_DIR/setup.sh"
+    register_temporary_path "$setup_script"
     cat > "$setup_script" << SETUP_EOF
 #!/bin/bash
 set -e
@@ -522,8 +558,8 @@ SETUP_EOF
     echo ""
 
     # Start VM for setup in background with SSH port forward
-    run_qemu_vm "$temp_image" "${VM_MEMORY:-4G}" "${VM_CPUS:-2}" "hostfwd=tcp::2222-:22" &
-    local qemu_pid=$!
+    run_qemu_vm "$temp_image" "${VM_MEMORY:-4G}" "${VM_CPUS:-2}" "hostfwd=tcp::2222-:22" "background"
+    local qemu_pid="$ACTIVE_QEMU_PID"
 
     echo "⏳ Waiting for VM SSH server to be fully ready..."
     while ! ssh-keyscan -p 2222 127.0.0.1 2> /dev/null | grep -q "ssh-"; do
@@ -544,7 +580,8 @@ SETUP_EOF
     echo "🚀 You can now login to the VM and run: chmod +x ./setup.sh && ./setup.sh"
 
     # Wait for QEMU process to finish cleanly
-    wait $qemu_pid
+    wait "$qemu_pid"
+    ACTIVE_QEMU_PID=""
 
     echo ""
     echo "💾 Converting VM to snapshot..."
@@ -581,8 +618,8 @@ function run_vm() {
   else
         echo "🔄 Running in non-persistent mode - changes will be discarded"
         vm_disk="$(mktemp -p "$CACHE_DIR" overlay.XXXXXX.qcow2)"
+        register_temporary_path "$vm_disk"
         qemu-img create -f qcow2 -F qcow2 -b "$snapshot_path" "$vm_disk"
-        trap 'rm -f "$vm_disk"' EXIT
   fi
 
     echo "🚀 Starting RaVN VM (branch/commit: $ref)..."
@@ -591,6 +628,10 @@ function run_vm() {
 
     # Run VM with SSH port forwarding
     run_qemu_vm "$vm_disk" "${VM_MEMORY:-4G}" "${VM_CPUS:-2}" "hostfwd=tcp::2222-:22"
+
+    if [ "$persistent" != "true" ]; then
+        rm -f -- "$vm_disk"
+  fi
 }
 
 function list_snapshots() {

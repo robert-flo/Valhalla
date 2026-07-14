@@ -67,6 +67,7 @@ Run the executable interaction suite:
 
 ```bash
 Scripts/ravnvm/tests/menu.sh
+Scripts/ravnvm/tests/interrupt.sh
 ```
 
 Also run `bash -n`, `shellcheck`, `shfmt`, and the repository pre-commit hook.
