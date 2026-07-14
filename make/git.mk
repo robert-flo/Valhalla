@@ -188,7 +188,7 @@ endif
 		fi; \
 	else \
 		printf "\n  pushing new branch $$BRANCH to remote...\n"; \
-		$(EXEC) git push || exit 1; \
+		$(EXEC) git push --set-upstream origin "$$BRANCH" || exit 1; \
 		printf "$(GREEN)  ✓ pushed to remote$(NC)\n"; \
 	fi
 ifndef EMBEDDED
