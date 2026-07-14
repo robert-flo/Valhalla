@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LAUNCHERS_DIR="${SCRIPT_DIR}/launchers"
 LAUNCHER_INSTALLER="${LAUNCHERS_DIR}/install_launchers.sh"
 LAUNCHER_MANAGER="${LAUNCHERS_DIR}/manage_launchers.sh"
+LEGACY_INSTALLER="${SCRIPT_DIR}/install.sh"
 
 # shellcheck disable=SC1091
 if ! source "${SCRIPT_DIR}/global_fn.sh"; then
@@ -26,7 +27,7 @@ press_enter_to_continue() {
 validate_launcher_sources() {
   local required_path=""
 
-  for required_path in "$LAUNCHER_INSTALLER" "$LAUNCHER_MANAGER" "${LAUNCHERS_DIR}/restore_launchers.psv"; do
+  for required_path in "$LEGACY_INSTALLER" "$LAUNCHER_INSTALLER" "$LAUNCHER_MANAGER" "${LAUNCHERS_DIR}/restore_launchers.psv"; do
     if [[ ! -f $required_path ]]; then
       print_error "Required launcher source not found: ${required_path#"$SCRIPT_DIR"/}"
       return 1
@@ -47,6 +48,10 @@ install_all_launchers() {
     print_error "Desktop launcher installation failed"
     return 1
   fi
+}
+
+run_all() {
+  install_all_launchers
 }
 
 test_launchers() {
@@ -143,4 +148,55 @@ run_main_menu() {
   done
 }
 
-run_main_menu
+print_usage() {
+  cat << 'USAGE'
+Usage: install_ravn.sh [COMMAND]
+
+Commands:
+  all, --all         Install all Desktop launchers
+  test, --test       Audit launcher artifacts declared in the manifest
+  clean, --clean     Remove declared launcher artifacts after confirmation
+  dry-run, --dry-run Show what installation would do without modifying $HOME
+  help, --help       Show this help
+
+With no command, the interactive installer menu is shown.
+USAGE
+}
+
+run_dry_run() {
+  validate_launcher_sources || return 1
+  print_section "${ICON_BUILD} Dry run"
+  print_info "Would run the existing Desktop launcher installer"
+  print_info "Would write only artifacts declared by launchers/restore_launchers.psv"
+  print_info "No files were modified"
+}
+
+main() {
+  case "${1:-menu}" in
+    all | --all)
+      run_all
+      ;;
+    test | --test)
+      test_launchers
+      ;;
+    clean | --clean)
+      clean_launchers
+      ;;
+    dry-run | --dry-run)
+      run_dry_run
+      ;;
+    help | --help | -h)
+      print_usage
+      ;;
+    menu)
+      run_main_menu
+      ;;
+    *)
+      print_error "Unknown command: $1"
+      print_usage
+      return 2
+      ;;
+  esac
+}
+
+main "$@"
