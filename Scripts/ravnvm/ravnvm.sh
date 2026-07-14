@@ -200,6 +200,15 @@ function normalize_repository_url() {
     printf '%s\n' "$repository"
 }
 
+function get_repository_directory_name() {
+    local repository="$1"
+    local repository_name="${repository##*/}"
+
+    repository_name="${repository_name%.git}"
+    repository_name="${repository_name//[^a-zA-Z0-9._-]/_}"
+    printf '%s\n' "$repository_name"
+}
+
 function check_root() {
     if [ "$EUID" -eq 0 ]; then
         print_error "Please don't run this script as root"
@@ -1071,6 +1080,7 @@ function run_external_repository() {
   local repository_input=""
   local external_repository=""
   local external_revision=""
+  local external_directory=""
   local previous_repository="$RAVNVM_REPO"
 
   print_section "Run external repository"
@@ -1089,9 +1099,11 @@ function run_external_repository() {
 
   read -r -p "${LIGHT_GRAY}Branch or commit [master]:${NC} " external_revision
   external_revision="${external_revision:-master}"
+  external_directory=$(get_repository_directory_name "$external_repository")
   RAVNVM_REPO="$external_repository"
   print_info "Using external repository: $RAVNVM_REPO"
   print_info "Using revision: $external_revision"
+  print_info "Clone directory: /home/arch/$external_directory"
   run_selected_revision "$external_revision"
   RAVNVM_REPO="$previous_repository"
 }

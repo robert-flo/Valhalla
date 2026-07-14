@@ -215,6 +215,9 @@ dev-vm-external: ## Run an external repository (REPO=owner/name, REF=master)
 		printf "  REPO accepts owner/name or an HTTPS .git URL.\n\n"; \
 		exit 2; \
 	fi; \
+	REPO_NAME=$$(basename "$(REPO)" .git); \
+	printf "  $(BLUE)repository:$(NC) %s\n" "$(REPO)"; \
+	printf "  $(BLUE)clone directory:$(NC) /home/arch/%s\n" "$$REPO_NAME"; \
 	if [ "$(DRY_RUN)" = "1" ]; then \
 		printf "  ▶ [dry-run] $(RAVNVM) --repo $(REPO) $(REF)\n"; \
 	else \
