@@ -1,3 +1,31 @@
+# ═══════════════════════════════════════════════════════════════
+# 🖥️  RAVNVM DEVELOPMENT - Isolated VM testing
+# ═══════════════════════════════════════════════════════════════
+# 📚 Documentation: Scripts/ravnvm/README.md
+# 🎯 Purpose: Run, inspect and manage isolated RaVN development VMs
+# ──── Overview: 9 targets for the complete RavnVM workflow ───
+#
+# 📎 Aliases & Targets:
+#    ALIAS  TARGET                         DESCRIPTION
+#    vm     dev-vm                        Run an ephemeral VM for REF
+#    —      dev-vm-persist                Run a persistent VM for REF
+#    —      dev-vm-list                   List cached revision snapshots
+#    —      dev-vm-clean                  Clean snapshots and temporary data
+#    —      dev-vm-setup                  Check or install host dependencies
+#    —      dev-vm-storage                Show cache and filesystem usage
+#    —      dev-vm-size                   Alias for dev-vm-storage
+#    —      dev-vm-ssh                    Connect to the running VM via SSH
+#    —      dev-vm-install-ssh-alias      Install the ssh ravnvm host alias
+#
+# 🧪 Dry Run (preview without executing RavnVM):
+#    make dev-vm                    DRY_RUN=1   · preview an ephemeral VM
+#    make dev-vm-persist            DRY_RUN=1   · preview a persistent VM
+#    make dev-vm-clean              DRY_RUN=1   · skip cache cleanup
+#    make dev-vm-setup              DRY_RUN=1   · skip dependency changes
+#    make dev-vm-ssh                DRY_RUN=1   · skip the SSH connection
+#    make dev-vm-install-ssh-alias  DRY_RUN=1   · skip SSH alias installation
+#    (help is read-only; list and storage targets are also previewed in dry-run)
+
 RAVNVM ?= $(SCRIPTS_DIR)/ravnvm/ravnvm.sh
 GIT ?= git
 REF ?= $(shell ref=$$($(GIT) branch --show-current 2>/dev/null); \

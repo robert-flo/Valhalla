@@ -10,6 +10,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Added
 
+- Integrate Git operations into the Make workflow ([#44](https://github.com/robert-flo/Valhalla/pull/44)). <!-- changelog-pr:44 -->
+
 - Exponer RavnVM mediante la interfaz Make ([#35](https://github.com/robert-flo/Valhalla/pull/35)). <!-- changelog-pr:35 -->
 
 - Añadir un menú interactivo validado a RavnVM ([#34](https://github.com/robert-flo/Valhalla/pull/34)). <!-- changelog-pr:34 -->
