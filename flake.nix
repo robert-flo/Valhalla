@@ -21,16 +21,16 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          hydevm = import ./Scripts/hydevm { inherit pkgs; };
+          ravnvm = import ./Scripts/ravnvm { inherit pkgs; };
         in
         {
           default = {
             type = "app";
-            program = "${hydevm.defaultPackage}/bin/hydevm";
+            program = "${ravnvm.defaultPackage}/bin/ravnvm";
           };
-          hydevm = {
+          ravnvm = {
             type = "app";
-            program = "${hydevm.defaultPackage}/bin/hydevm";
+            program = "${ravnvm.defaultPackage}/bin/ravnvm";
           };
         }
       );
@@ -39,11 +39,11 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          hydevm = import ./Scripts/hydevm { inherit pkgs; };
+          ravnvm = import ./Scripts/ravnvm { inherit pkgs; };
         in
         {
-          default = hydevm.defaultPackage;
-          hydevm = hydevm.defaultPackage;
+          default = ravnvm.defaultPackage;
+          ravnvm = ravnvm.defaultPackage;
         }
       );
 
