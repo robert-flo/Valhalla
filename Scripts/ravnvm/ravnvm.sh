@@ -72,6 +72,7 @@ Options:
   --persist                Retain changes in the revision snapshot
   --list                   List available revision snapshots
   --clean                  Remove snapshots and temporary VM data
+  --storage                Show cache and filesystem storage usage
   --install-deps           Install required packages on Arch Linux
   --check-deps             Check host dependencies
   --ssh                    Connect to the running VM
@@ -740,6 +741,10 @@ main() {
         ;;
       --clean)
         clean_cache
+        return
+        ;;
+      --storage)
+        show_storage_status
         return
         ;;
       --check-deps)
