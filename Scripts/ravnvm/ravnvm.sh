@@ -21,6 +21,7 @@ fi
 #   ravnvm              — Validate the environment and open the menu
 #   ravnvm <revision>   — Run a branch or commit directly
 #   ravnvm --persist    — Run with persistent VM changes
+#   ravnvm --repo URL   — Run a repository other than RaVN
 #
 # DIRECT OPTIONS
 #   --list              — List cached snapshots
@@ -30,6 +31,11 @@ fi
 #   --install-deps      — Install host dependencies on Arch Linux
 #   --install-ssh-alias — Configure the `ssh ravnvm` host alias
 #   --help              — Show command help
+#
+# EXTERNAL REPOSITORY EXAMPLES
+#   ravnvm --repo robert-flo/Valhalla master
+#   RAVNVM_REPO=https://github.com/robert-flo/Valhalla.git ravnvm master
+#   make dev-vm-external REPO=robert-flo/Valhalla REF=master
 
 set -e
 
@@ -88,7 +94,8 @@ trap cleanup_runtime EXIT
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/ravnvm"
 BASE_IMAGE="$CACHE_DIR/archbase.qcow2"
 SNAPSHOTS_DIR="$CACHE_DIR/snapshots"
-RAVN_REPO="https://github.com/robert-flo/RaVN.git"
+DEFAULT_RAVNVM_REPO="https://github.com/robert-flo/RaVN.git"
+RAVNVM_REPO="${RAVNVM_REPO:-$DEFAULT_RAVNVM_REPO}"
 SSH_PORT=2222
 SSH_READY_TIMEOUT="${RAVNVM_SSH_READY_TIMEOUT:-120}"
 if [[ ! $SSH_READY_TIMEOUT =~ ^[0-9]+$ ]]; then
@@ -140,6 +147,7 @@ function print_usage() {
     echo ""
     echo "Options:"
     echo "  --persist               Make VM changes persistent"
+    echo "  --repo URL              Use another Git repository (default: RaVN)"
     echo "  --list                  List available snapshots"
     echo "  --storage               Show VM storage usage"
     echo "  --clean                 Clean all cached data"
@@ -161,10 +169,30 @@ function print_usage() {
     echo "  ravnvm feature-branch   # Run specific branch"
     echo "  ravnvm abc123           # Run specific commit"
     echo "  ravnvm --persist dev    # Run dev branch with persistence"
+    echo "  ravnvm --repo robert-flo/Valhalla master"
+    echo "  RAVNVM_REPO=https://github.com/robert-flo/Valhalla.git ravnvm master"
+    echo "  make dev-vm-external REPO=robert-flo/Valhalla REF=master"
     echo ""
     echo "OS-specific notes:"
     echo "  Arch Linux: Missing packages will be auto-detected and offered for install"
     echo "  NixOS: automatically installs dependencies"
+}
+
+function normalize_repository_url() {
+    local repository="$1"
+
+    if [[ $repository =~ ^[^/:]+/[^/:]+$ ]]; then
+        repository="https://github.com/${repository}.git"
+  elif   [[ $repository =~ ^https://github\.com/[^/]+/[^/]+$ ]]; then
+        repository="${repository}.git"
+  fi
+
+    if [[ ! $repository =~ ^https://[^[:space:]]+\.git$ ]]; then
+        print_error "Invalid repository. Use owner/name or an HTTPS .git URL" >&2
+        return 1
+  fi
+
+    printf '%s\n' "$repository"
 }
 
 function check_root() {
@@ -556,12 +584,12 @@ cd /home/arch
 if [ -d "RaVN" ]; then
     guest_info "RaVN directory exists, updating..."
     cd RaVN
-    git remote set-url origin "$RAVN_REPO" 2>/dev/null || true
+    git remote set-url origin "$RAVNVM_REPO" 2>/dev/null || true
     git fetch origin
     git reset --hard HEAD  # Reset any local changes
 else
     guest_info "Cloning RaVN repository..."
-    git clone "$RAVN_REPO" RaVN
+    git clone "$RAVNVM_REPO" RaVN
     cd RaVN
 fi
 
@@ -935,6 +963,7 @@ function show_menu() {
   echo -e "  ${GREEN}9${NC}  ${ICON_DIAGNOSTIC_INFO}  Show RavnVM usage"
   echo -e "  ${GREEN}10${NC} ${ICON_UI_TERMINAL}  Connect to VM via SSH"
   echo -e "  ${GREEN}11${NC} ${ICON_UI_BOOKMARK}  Install SSH alias"
+  echo -e "  ${GREEN}12${NC} ${ICON_UI_GITHUB}  Run external repository"
   echo -e "  ${GREEN}q${NC}  ${ICON_UI_CLOSE}  Exit"
   echo ""
   read -r -p "${LIGHT_GRAY}Selection:${NC} " MENU_CHOICE
@@ -1021,6 +1050,35 @@ function run_custom_revision() {
   fi
 
   run_selected_revision "$custom_revision"
+}
+
+function run_external_repository() {
+  local repository_input=""
+  local external_repository=""
+  local external_revision=""
+  local previous_repository="$RAVNVM_REPO"
+
+  print_section "Run external repository"
+  print_info "Default RaVN repository: $DEFAULT_RAVNVM_REPO"
+  read -r -p "${LIGHT_GRAY}Repository URL or owner/name:${NC} " repository_input
+  if [[ -z $repository_input ]]; then
+    print_error "A repository is required"
+    press_enter_to_continue
+    return 1
+  fi
+
+  if ! external_repository=$(normalize_repository_url "$repository_input"); then
+    press_enter_to_continue
+    return 1
+  fi
+
+  read -r -p "${LIGHT_GRAY}Branch or commit [master]:${NC} " external_revision
+  external_revision="${external_revision:-master}"
+  RAVNVM_REPO="$external_repository"
+  print_info "Using external repository: $RAVNVM_REPO"
+  print_info "Using revision: $external_revision"
+  run_selected_revision "$external_revision"
+  RAVNVM_REPO="$previous_repository"
 }
 
 function connect_ssh() {
@@ -1147,6 +1205,9 @@ function run_interactive_menu() {
         fi
         press_enter_to_continue
         ;;
+      12)
+        run_external_repository || true
+        ;;
       q | Q)
         print_info "Goodbye!"
         return 0
@@ -1165,6 +1226,10 @@ function run_interactive_menu() {
 
 # Main logic
 check_root
+
+if ! RAVNVM_REPO=$(normalize_repository_url "$RAVNVM_REPO"); then
+    exit 2
+fi
 
 if [[ $# -eq 0 ]]; then
     clear || true
@@ -1186,6 +1251,16 @@ while [ $# -gt 0 ]; do
         --persist)
             persistent="true"
             shift
+            ;;
+        --repo)
+            if [[ $# -lt 2 ]]; then
+                print_error "--repo requires owner/name or an HTTPS .git URL"
+                exit 2
+      fi
+            if ! RAVNVM_REPO=$(normalize_repository_url "$2"); then
+                exit 2
+      fi
+            shift 2
             ;;
         --list)
             list_snapshots

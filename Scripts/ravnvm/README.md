@@ -177,6 +177,10 @@ make dev-vm-size # Compatibility alias for dev-vm-storage
 make dev-vm-ssh
 make dev-vm-install-ssh-alias
 
+# Run an external repository for a one-off test
+make dev-vm-external REPO=robert-flo/Valhalla REF=master
+make dev-vm-external REPO=https://github.com/robert-flo/Valhalla.git REF=dev
+
 # Preview a target without launching or changing the VM
 make dev-vm DRY_RUN=1 REF=dev
 ```
@@ -187,6 +191,8 @@ setup, resource defaults, and SSH access.
 
 `make dev-vm` defaults `REF` to the active checkout branch. VM resource
 variables and QEMU overrides can be passed through the make interface.
+`dev-vm-external` requires `REPO` and defaults `REF` to `master`; it does not
+change the default RaVN repository used by the regular targets.
 
 ### Environment Variables
 
@@ -196,6 +202,10 @@ VM_MEMORY=8G VM_CPUS=4 ravnvm
 
 # Set extra QEMU arguments
 VM_EXTRA_ARGS="-display vnc=:1" ravnvm
+
+# Use another repository from the command line; owner/name is also accepted
+RAVNVM_REPO=robert-flo/Valhalla ravnvm master
+ravnvm --repo robert-flo/Valhalla master
 
 # Override QEMU command entirely, provided $VM_DISK will be substituted with the actual disk image
 VM_QEMU_OVERRIDE="qemu-system-x86_64 -m 4G -smp 2 -enable-kvm -drive file=\$VM_DISK,format=qcow2,if=virtio -device virtio-vga -display gtk" ravnvm

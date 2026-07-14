@@ -22,7 +22,7 @@ assert_contains() {
   local haystack="$1"
   local needle="$2"
 
-  grep -Fq "$needle" <<< "$haystack" || fail "expected output to contain: $needle"
+    grep -Fq -- "$needle" <<< "$haystack" || fail "expected output to contain: $needle"
 }
 
 mkdir -p "$FAKE_BIN"
@@ -41,6 +41,7 @@ assert_contains "$menu_output" "Run other branch or commit"
 assert_contains "$menu_output" "Show RavnVM usage"
 assert_contains "$menu_output" "Connect to VM via SSH"
 assert_contains "$menu_output" "Install SSH alias"
+assert_contains "$menu_output" "Run external repository"
 assert_contains "$menu_output" "   Configure RAM and CPU"
 assert_contains "$menu_output" "   Install SSH alias"
 assert_contains "$menu_output" "Goodbye!"
@@ -118,6 +119,10 @@ assert_contains "$make_ssh_output" "ravnvm.sh --ssh"
 make_help_output=$(make -s help)
 assert_contains "$make_help_output" "make dev-vm"
 assert_contains "$make_help_output" "make dev-vm-ssh"
+assert_contains "$make_help_output" "make dev-vm-external"
+
+external_make_output=$(make -s DRY_RUN=1 dev-vm-external REPO=robert-flo/Valhalla REF=master)
+assert_contains "$external_make_output" "--repo robert-flo/Valhalla master"
 
 rm -f "$FAKE_BIN/qemu-system-x86_64" "$FAKE_BIN/qemu-img"
 for command_name in env bash realpath dirname clear awk df du find sed basename mktemp mkdir rm grep cat git curl python3; do
