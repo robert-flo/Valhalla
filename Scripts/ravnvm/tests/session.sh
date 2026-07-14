@@ -95,6 +95,9 @@ assert_contains "$second_output" "Another RavnVM session is already active; clos
 list_output=$("$RAVNVM_SCRIPT" --list)
 assert_contains "$list_output" "Available RaVN snapshots"
 
+storage_output=$("$RAVNVM_SCRIPT" --storage)
+assert_contains "$storage_output" "VM cache:"
+
 "$RAVNVM_SCRIPT" --clean > "$FIXTURE_DIR/clean.output"
 touch "$FIXTURE_DIR/cache/ravnvm/snapshots/ravn-dev.qcow2"
 set +e
