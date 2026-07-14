@@ -421,11 +421,23 @@ function get_latest_arch_image_url() {
 }
 
 function download_archbox() {
+    local partial_image="${BASE_IMAGE}.part"
+
     if [ ! -f "$BASE_IMAGE" ]; then
         echo "📦 Downloading Arch Linux base image..."
         local latest_url
         latest_url=$(get_latest_arch_image_url)
-        curl -L "$latest_url" -o "$BASE_IMAGE"
+        rm -f -- "$partial_image"
+        register_temporary_path "$partial_image"
+        if ! curl -fL "$latest_url" -o "$partial_image"; then
+            rm -f -- "$partial_image"
+            print_error "Unable to download the Arch Linux base image"
+            return 1
+    fi
+        if ! mv -- "$partial_image" "$BASE_IMAGE"; then
+            print_error "Unable to store the Arch Linux base image"
+            return 1
+    fi
         echo "✅ Base image downloaded successfully"
   fi
 }
@@ -970,7 +982,9 @@ function run_vm_command() {
     return 1
   fi
 
-  download_archbox
+  if ! download_archbox; then
+    return 1
+  fi
   run_vm "$revision" "$persistent_mode"
 }
 
@@ -1103,7 +1117,9 @@ run_vm_command_direct() {
         return 1
   fi
 
-    download_archbox
+    if ! download_archbox; then
+        return 1
+  fi
     run_vm "$ref" "$persistent"
 }
 
