@@ -47,10 +47,10 @@ make -s -C "$ROOT_DIR" dev-vm-persist RAVNVM="$FAKE_RAVNVM" REF=dev
 assert_contains "$(< "$CALL_LOG")" "args=--persist dev"
 
 declare -A target_options=(
-   [dev - vm - list]=--list
-   [dev - vm - clean]=--clean
-   [dev - vm - size]=--storage
-   [dev - vm - ssh]=--ssh
+   ["dev-vm-list"]=--list
+   ["dev-vm-clean"]=--clean
+   ["dev-vm-size"]=--storage
+   ["dev-vm-ssh"]=--ssh
 )
 for target in "${!target_options[@]}"; do
   make -s -C "$ROOT_DIR" "$target" RAVNVM="$FAKE_RAVNVM"
