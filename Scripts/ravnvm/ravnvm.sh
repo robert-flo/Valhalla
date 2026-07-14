@@ -764,6 +764,7 @@ function clean_cache() {
 # └──────────────────────────────────────────────────────────────────────────────┘
 
 function press_enter_to_continue() {
+  printf '\n'
   read -r -p "Press Enter to continue..." _
 }
 
@@ -1118,6 +1119,7 @@ function run_interactive_menu() {
         press_enter_to_continue
         ;;
       6)
+        printf '\n'
         clean_cache || true
         press_enter_to_continue
         ;;
