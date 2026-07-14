@@ -53,7 +53,7 @@ assert_contains "$clean_output" "base image preserved"
 [[ ! -e "$XDG_CACHE_HOME/ravnvm/snapshots/ravn-dev.qcow2" ]] || fail "cleanup retained a snapshot"
 
 touch "$XDG_CACHE_HOME/ravnvm/snapshots/ravn-master-fc613b4dfd67.qcow2"
-default_output=$(VM_QEMU_OVERRIDE=true "$RAVNVM_SCRIPT" 2>&1)
+default_output=$(VM_QEMU_OVERRIDE=true "$RAVNVM_SCRIPT" master 2>&1)
 assert_contains "$default_output" "Starting RaVN VM (branch/commit: master)"
 
 help_output=$("$RAVNVM_SCRIPT" --help)
