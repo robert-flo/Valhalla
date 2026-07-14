@@ -21,6 +21,7 @@ readonly -a ARCH_PACKAGES=(qemu-desktop curl git openssh)
 
 ACTIVE_QEMU_PID=""
 TEMPORARY_PATHS=()
+SELECTED_PERSISTENCE=""
 
 print_error() {
   printf "${RED}Error:${NC} %s\n" "$*" >&2
@@ -428,10 +429,280 @@ run_revision() {
   run_vm "$revision" "$persistent"
 }
 
+print_section() {
+  printf '\n%s\n' "$1"
+  printf '%s\n' '────────────────────────────────────────────────────────────'
+}
+
+press_enter_to_continue() {
+  read -r -p 'Press Enter to continue...' _ || true
+}
+
+print_banner() {
+  cat << 'BANNER'
+
+  RavnVM — QEMU/KVM Development Environment
+BANNER
+}
+
+format_bytes() {
+  local bytes="${1:-0}"
+
+  awk -v bytes="$bytes" 'BEGIN {
+    split("B KiB MiB GiB TiB", units)
+    unit = 1
+    while (bytes >= 1024 && unit < 5) {
+      bytes /= 1024
+      unit++
+    }
+    printf "%.2f %s", bytes, units[unit]
+  }'
+}
+
+show_storage_status() {
+  local cache_bytes=0
+  local filesystem_total=0
+  local filesystem_used=0
+  local filesystem_available=0
+  local filesystem_percent=0
+  local storage_label="Available"
+
+  ensure_cache
+  cache_bytes=$(du -s -B1 "$CACHE_DIR" 2> /dev/null | awk '{print $1}' || printf '0\n')
+  read -r filesystem_total filesystem_used filesystem_available filesystem_percent < <(
+    df -P -B1 "$CACHE_DIR" 2> /dev/null | awk 'NR == 2 {
+      gsub("%", "", $5)
+      print $2, $3, $4, $5
+    }'
+  ) || true
+
+  if ((filesystem_percent >= 90)); then
+    storage_label="Critical"
+  elif ((filesystem_percent >= 80)); then
+    storage_label="High usage"
+  fi
+
+  print_section "Storage — $storage_label"
+  printf 'VM cache: %s\n' "$(format_bytes "$cache_bytes")"
+  printf 'Disk: %s used / %s (%s%%)\n' \
+    "$(format_bytes "$filesystem_used")" \
+    "$(format_bytes "$filesystem_total")" \
+    "$filesystem_percent"
+  printf 'Free: %s\n' "$(format_bytes "$filesystem_available")"
+
+  if ((filesystem_percent >= 90)); then
+    print_error "Storage critically low; clean old VM snapshots before continuing"
+  elif ((filesystem_percent >= 80)); then
+    print_warning "Storage usage is high; review VM snapshots before creating another"
+  fi
+}
+
+validate_environment() {
+  local command_name=""
+  local validation_failed=false
+
+  ensure_cache
+  print_section "Validating Environment"
+  for command_name in "${REQUIRED_COMMANDS[@]}"; do
+    if command -v "$command_name" > /dev/null 2>&1; then
+      printf '✓ %s\n' "$command_name"
+    else
+      printf '✗ %s not found\n' "$command_name"
+      validation_failed=true
+    fi
+  done
+
+  if [[ -r /dev/kvm ]]; then
+    printf '✓ KVM acceleration\n'
+  else
+    print_warning "KVM is unavailable; QEMU will run without hardware acceleration"
+  fi
+  show_storage_status
+
+  [[ $validation_failed == false ]]
+}
+
+recover_environment() {
+  local recovery_choice=""
+
+  while ! validate_environment; do
+    print_section "Required dependencies missing"
+    printf '  %b1%b  Install dependencies\n' "$GREEN" "$NC"
+    printf '  %bq%b  Exit\n\n' "$GREEN" "$NC"
+    read -r -p 'Selection: ' recovery_choice || return 1
+
+    case "$recovery_choice" in
+      1)
+        install_arch_dependencies || true
+        ;;
+      q | Q)
+        return 1
+        ;;
+      *)
+        print_error "Choose Install dependencies or Exit"
+        press_enter_to_continue
+        ;;
+    esac
+  done
+}
+
+show_menu() {
+  print_section "Choose an action"
+  printf '  %b1%b   Run master branch\n' "$GREEN" "$NC"
+  printf '  %b2%b   Run dev branch\n' "$GREEN" "$NC"
+  printf '  %b3%b   Run current branch\n' "$GREEN" "$NC"
+  printf '  %b4%b   Run other branch or commit\n' "$GREEN" "$NC"
+  printf '  %b5%b   Show VM storage usage\n' "$GREEN" "$NC"
+  printf '  %b6%b   Clean VM cache\n' "$GREEN" "$NC"
+  printf '  %b7%b   List VM snapshots\n' "$GREEN" "$NC"
+  printf '  %b8%b   Configure RAM and CPU\n' "$GREEN" "$NC"
+  printf '  %b9%b   Show RavnVM usage\n' "$GREEN" "$NC"
+  printf '  %b10%b  Connect to VM via SSH\n' "$GREEN" "$NC"
+  printf '  %bq%b   Exit\n\n' "$GREEN" "$NC"
+}
+
+select_execution_mode() {
+  local mode_choice=""
+
+  SELECTED_PERSISTENCE=""
+  print_section "Choose VM mode"
+  printf '  %b1%b  Ephemeral\n' "$GREEN" "$NC"
+  printf '  %b2%b  Persistent\n' "$GREEN" "$NC"
+  printf '  %bq%b  Back\n\n' "$GREEN" "$NC"
+  read -r -p 'Selection: ' mode_choice || return 1
+
+  case "$mode_choice" in
+    1)
+      SELECTED_PERSISTENCE=false
+      ;;
+    2)
+      SELECTED_PERSISTENCE=true
+      ;;
+    q | Q)
+      return 1
+      ;;
+    *)
+      print_error "Invalid mode option: $mode_choice"
+      return 1
+      ;;
+  esac
+}
+
+run_menu_revision() {
+  local revision="$1"
+
+  select_execution_mode || return 0
+  run_revision "$revision" "$SELECTED_PERSISTENCE" || true
+  press_enter_to_continue
+}
+
+configure_session_resources() {
+  local requested_memory=""
+  local requested_cpus=""
+  local current_memory="${VM_MEMORY:-$DEFAULT_MEMORY}"
+  local current_cpus="${VM_CPUS:-$DEFAULT_CPUS}"
+
+  print_section "Configure VM resources"
+  read -r -p "RAM [$current_memory]: " requested_memory || return 1
+  read -r -p "CPUs [$current_cpus]: " requested_cpus || return 1
+
+  requested_memory="${requested_memory:-$current_memory}"
+  requested_cpus="${requested_cpus:-$current_cpus}"
+  if [[ ! $requested_cpus =~ ^[1-9][0-9]*$ ]]; then
+    print_error "CPU count must be a positive integer"
+    return 1
+  fi
+
+  VM_MEMORY="$requested_memory"
+  VM_CPUS="$requested_cpus"
+  export VM_MEMORY VM_CPUS
+  print_success "Session resources: $VM_MEMORY RAM, $VM_CPUS CPUs"
+}
+
+current_branch() {
+  local branch=""
+
+  branch=$(git branch --show-current 2> /dev/null || true)
+  printf '%s\n' "${branch:-master}"
+}
+
+run_interactive_menu() {
+  local choice=""
+  local custom_revision=""
+
+  print_banner
+  if ! recover_environment; then
+    printf 'RavnVM closed without starting a VM\n'
+    return 0
+  fi
+
+  while true; do
+    show_menu
+    read -r -p 'Selection: ' choice || return 0
+    case "$choice" in
+      1)
+        run_menu_revision master
+        ;;
+      2)
+        run_menu_revision dev
+        ;;
+      3)
+        run_menu_revision "$(current_branch)"
+        ;;
+      4)
+        read -r -p 'Branch or commit: ' custom_revision || return 0
+        if [[ -z $custom_revision ]]; then
+          print_error "A branch or commit is required"
+          press_enter_to_continue
+        else
+          run_menu_revision "$custom_revision"
+        fi
+        ;;
+      5)
+        show_storage_status
+        press_enter_to_continue
+        ;;
+      6)
+        clean_cache || true
+        press_enter_to_continue
+        ;;
+      7)
+        list_snapshots || true
+        press_enter_to_continue
+        ;;
+      8)
+        configure_session_resources || true
+        press_enter_to_continue
+        ;;
+      9)
+        print_usage
+        press_enter_to_continue
+        ;;
+      10)
+        connect_ssh || print_error "Unable to connect to the running VM"
+        press_enter_to_continue
+        ;;
+      q | Q)
+        printf 'Goodbye!\n'
+        return 0
+        ;;
+      *)
+        print_error "Invalid option: $choice"
+        press_enter_to_continue
+        ;;
+    esac
+  done
+}
+
 main() {
   local revision="master"
   local revision_was_set=false
   local persistent=false
+
+  if (($# == 0)); then
+    run_interactive_menu
+    return
+  fi
 
   while (($# > 0)); do
     case "$1" in
