@@ -33,7 +33,7 @@ P|${HOME}/.local/share/applications|minimax Agent.desktop|desktop-launcher
 P|${HOME}/.local/share/applications|Monica HQ.desktop|desktop-launcher
 P|${HOME}/.local/share/applications|Netflix.desktop|desktop-launcher
 P|${HOME}/.local/share/applications|NotebookLM.desktop|desktop-launcher
-P|${HOME}/.local/share/applications|Notion.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Notion .desktop|desktop-launcher
 P|${HOME}/.local/share/applications|OpenClaw Dashboard.desktop|desktop-launcher
 P|${HOME}/.local/share/applications|Perplexity ai.desktop|desktop-launcher
 P|${HOME}/.local/share/applications|Raindrop.desktop|desktop-launcher
@@ -129,5 +129,3 @@ P|${HOME}/.local/share/applications/icons|command-code.png|launcher-icon
 P|${HOME}/.local/share/applications/icons|ncdu.png|launcher-icon
 P|${HOME}/.local/share/applications/icons|omp.png|launcher-icon
 P|${HOME}/.local/share/applications/icons|zero.png|launcher-icon
-P|${HOME}/.local/share/applications/icons|icon.png|launcher-icon
-P|${HOME}/.local/share/applications/icons|Gmail.png|launcher-icon
