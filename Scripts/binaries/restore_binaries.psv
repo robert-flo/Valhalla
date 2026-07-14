@@ -1,0 +1,9 @@
+# RaVN-owned user binaries.
+# flag|destination|artifact|owner
+P|${HOME}/.local/bin|git-bare-clone|ravn-binary
+P|${HOME}/.local/bin|git-create-worktree|ravn-binary
+P|${HOME}/.local/bin|git-issue-worktree|ravn-binary
+P|${HOME}/.local/bin|git-setup|ravn-binary
+P|${HOME}/.local/bin|meld-comparisons|ravn-binary
+P|${HOME}/.local/bin|ravn-dot|ravn-binary
+P|${HOME}/.local/bin|top-why|ravn-binary

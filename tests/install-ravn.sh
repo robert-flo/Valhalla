@@ -18,9 +18,12 @@ assert_contains() {
   grep -Fq "$expected" "$file" || fail "expected output to contain: $expected"
 }
 
+HOME="$FIXTURE_DIR/home"
+export HOME
+
 NO_COLOR=1 "$INSTALLER" binaries > "$FIXTURE_DIR/binaries.out"
-assert_contains "$FIXTURE_DIR/binaries.out" "Binaries are not available yet"
-assert_contains "$FIXTURE_DIR/binaries.out" "did not change your system"
+assert_contains "$FIXTURE_DIR/binaries.out" "installed declared RaVN binaries"
+[[ -x "$HOME/.local/bin/ravn-dot" ]] || fail "Binaries dispatch did not install a declared binary"
 
 NO_COLOR=1 "$INSTALLER" configurations > "$FIXTURE_DIR/configurations.out"
 assert_contains "$FIXTURE_DIR/configurations.out" "Configurations are not available yet"
