@@ -22,6 +22,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Changed
 
+- Update custom Flatpak selection ([#28](https://github.com/robert-flo/Valhalla/pull/28)). <!-- changelog-pr:28 -->
+
 - [ImgBot] Optimize images ([#21](https://github.com/robert-flo/Valhalla/pull/21)). <!-- changelog-pr:21 -->
 
 - Keep issue worktree and branch names consistent ([#10](https://github.com/robert-flo/Valhalla/pull/10)). <!-- changelog-pr:10 -->
