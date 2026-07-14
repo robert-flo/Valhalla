@@ -72,6 +72,19 @@ readonly ICON_GEAR="[GEAR]"
 readonly ICON_ROCKET="[ROCKET]"
 # shellcheck disable=SC2034
 readonly ICON_PACKAGE="[PACKAGE]"
+# RavnVM workflow icons retained as reusable public constants.
+# shellcheck disable=SC2034
+readonly ICON_SNAPSHOT="📸"
+# shellcheck disable=SC2034
+readonly ICON_BUILD="🔨"
+# shellcheck disable=SC2034
+readonly ICON_VM="🖥️"
+# shellcheck disable=SC2034
+readonly ICON_INSTRUCTIONS="📋"
+# shellcheck disable=SC2034
+readonly ICON_WAITING="⏳"
+# shellcheck disable=SC2034
+readonly ICON_CLEANING="🧹"
 
 # Nerd Font catalog from Scripts/icons.lua. Keep semantic aliases above stable
 # for existing consumers; use this namespaced catalog for new interfaces.
@@ -146,6 +159,8 @@ readonly ICON_DIAGNOSTIC_INFO="${RAVN_ICON[diagnostics_information]}"
 readonly ICON_DIAGNOSTIC_WARNING="${RAVN_ICON[diagnostics_warning]}"
 # shellcheck disable=SC2034
 readonly ICON_GIT_BRANCH="${RAVN_ICON[git_branch]}"
+# shellcheck disable=SC2034
+readonly ICON_GIT_GITHUB="${RAVN_ICON[git_github]}"
 # shellcheck disable=SC2034
 readonly ICON_UI_GEAR="${RAVN_ICON[ui_gear]}"
 # shellcheck disable=SC2034

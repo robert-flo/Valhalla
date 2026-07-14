@@ -16,6 +16,7 @@
 #    —      dev-vm-size                   Alias for dev-vm-storage
 #    —      dev-vm-ssh                    Connect to the running VM via SSH
 #    —      dev-vm-install-ssh-alias      Install the ssh ravnvm host alias
+#    —      dev-vm-external               Run an external repository
 #
 # 🧪 Dry Run (preview without executing RavnVM):
 #    make dev-vm                    DRY_RUN=1   · preview an ephemeral VM
@@ -38,7 +39,7 @@ VM_QEMU_OVERRIDE ?=
 DRY_RUN ?= 0
 
 RAVNVM_TARGETS := dev-vm dev-vm-persist dev-vm-list dev-vm-clean dev-vm-setup \
-	dev-vm-storage dev-vm-size dev-vm-ssh dev-vm-install-ssh-alias
+	dev-vm-storage dev-vm-size dev-vm-ssh dev-vm-install-ssh-alias dev-vm-external
 
 .PHONY: help-ravnvm $(RAVNVM_TARGETS)
 
@@ -72,7 +73,7 @@ define run-ravnvm
 	fi; \
 	printf "\n$(YELLOW)📋 Quick Actions:$(NC)\n"; \
 	printf "$(DIM)────────────────────────────────────────────────────────────────────────────────$(NC)\n"; \
-	printf "  • inspect repository: $(BLUE)make git-status$(NC)\n"; \
+	printf "  • inspect repository:    $(BLUE)make git-status$(NC)\n"; \
 	printf "  • list cached snapshots: $(BLUE)make dev-vm-list$(NC)\n"; \
 	printf "  • check VM dependencies: $(BLUE)make dev-vm-setup$(NC)\n\n"
 endef
@@ -90,7 +91,7 @@ define run-ravnvm-readonly
 	fi; \
 	printf "\n$(YELLOW)📋 Quick Actions:$(NC)\n"; \
 	printf "$(DIM)────────────────────────────────────────────────────────────────────────────────$(NC)\n"; \
-	printf "  • run an ephemeral VM: $(BLUE)make dev-vm$(NC)\n"; \
+	printf "  • run an ephemeral VM:  $(BLUE)make dev-vm$(NC)\n"; \
 	printf "  • clean snapshots:    $(BLUE)make dev-vm-clean$(NC)\n"; \
 	printf "  • check dependencies:  $(BLUE)make dev-vm-setup$(NC)\n\n"
 endef
@@ -130,7 +131,7 @@ define run-ravnvm-clean
 	printf "$(DIM)────────────────────────────────────────────────────────────────────────────────$(NC)\n"; \
 	printf "  • list snapshots: $(BLUE)make dev-vm-list$(NC)\n"; \
 	printf "  • inspect storage: $(BLUE)make dev-vm-storage$(NC)\n"; \
-	printf "  • run an ephemeral VM: $(BLUE)make dev-vm$(NC)\n\n"
+	printf "  • run an ephemeral VM:  $(BLUE)make dev-vm$(NC)\n\n"
 endef
 
 define run-ravnvm-setup
@@ -161,7 +162,7 @@ define run-ravnvm-setup
 	fi; \
 	printf "\n$(YELLOW)📋 Quick Actions:$(NC)\n"; \
 	printf "$(DIM)────────────────────────────────────────────────────────────────────────────────$(NC)\n"; \
-	printf "  • run an ephemeral VM: $(BLUE)make dev-vm$(NC)\n"; \
+	printf "  • run an ephemeral VM:  $(BLUE)make dev-vm$(NC)\n"; \
 	printf "  • inspect VM storage:  $(BLUE)make dev-vm-storage$(NC)\n"; \
 	printf "  • list cached snapshots: $(BLUE)make dev-vm-list$(NC)\n\n"
 
@@ -178,6 +179,8 @@ help-ravnvm: ## Show the RavnVM development targets
 	@printf '  make dev-vm-size        Alias for dev-vm-storage\n'
 	@printf '  make dev-vm-ssh         Connect to the running VM via SSH\n'
 	@printf '  make dev-vm-install-ssh-alias  Install the ssh ravnvm host alias\n'
+	@printf '  make dev-vm-external REPO=owner/name REF=master\n'
+	@printf '                              Run an external repository (ephemeral)\n'
 	@printf '\nSet DRY_RUN=1 to print commands without executing RavnVM.\n'
 
 dev-vm: ## Run an ephemeral VM
@@ -202,6 +205,36 @@ dev-vm-ssh: ## Connect to the running VM via SSH
 
 dev-vm-install-ssh-alias: ## Install the ssh ravnvm host alias
 	$(call run-ravnvm,--install-ssh-alias)
+
+dev-vm-external: ## Run an external repository (REPO=owner/name, REF=master)
+	@printf "\n$(CYAN)🌐 dev-vm-external · external repository VM$(NC)\n"
+	@printf "$(CYAN)────────────────────────────────────────────────────────────────────────────────$(NC)\n"
+	@if [ -z "$(REPO)" ] || [ "$(REPO)" = "RaVN" ]; then \
+		printf "$(RED)  ✗ missing or invalid required argument$(NC)\n\n"; \
+		printf "  usage:  $(BLUE)make dev-vm-external REPO=robert-flo/Valhalla REF=master$(NC)\n\n"; \
+		printf "  REPO accepts owner/name or an HTTPS .git URL.\n\n"; \
+		exit 2; \
+	fi; \
+	REPO_NAME=$$(basename "$(REPO)" .git); \
+	printf "  $(BLUE)repository:$(NC) %s\n" "$(REPO)"; \
+	printf "  $(BLUE)clone directory:$(NC) /home/arch/%s\n" "$$REPO_NAME"; \
+	if [ "$(DRY_RUN)" = "1" ]; then \
+		printf "  ▶ [dry-run] $(RAVNVM) --repo $(REPO) $(REF)\n"; \
+	else \
+		$(check-ravnvm); \
+		if VM_MEMORY='$(VM_MEMORY)' VM_CPUS='$(VM_CPUS)' \
+		VM_EXTRA_ARGS='$(value VM_EXTRA_ARGS)' VM_QEMU_OVERRIDE='$(value VM_QEMU_OVERRIDE)' \
+		'$(RAVNVM)' --repo '$(REPO)' '$(REF)'; then \
+			printf "$(GREEN)  ✓ external repository VM completed$(NC)\n"; \
+		else \
+			status=$$?; printf "$(RED)  ✗ external repository VM failed (exit $$status)$(NC)\n" >&2; exit $$status; \
+		fi; \
+	fi
+	@printf "\n$(GREEN)  ✓ done$(NC)\n"
+	@printf "\n$(YELLOW)📋 Quick Actions:$(NC)\n"
+	@printf "$(DIM)────────────────────────────────────────────────────────────────────────────────$(NC)\n"
+	@printf "  • run default RaVN VM: $(BLUE)make dev-vm$(NC)\n"
+	@printf "  • list snapshots:      $(BLUE)make dev-vm-list$(NC)\n\n"
 
 dev-vm-setup: ## Check or install VM dependencies
 	$(run-ravnvm-setup)
