@@ -933,7 +933,7 @@ function show_menu() {
   echo -e "  ${GREEN}8${NC}  ${ICON_UI_GEAR}  Configure RAM and CPU"
   echo -e "  ${GREEN}9${NC}  ${ICON_DIAGNOSTIC_INFO}  Show RavnVM usage"
   echo -e "  ${GREEN}10${NC} ${ICON_UI_TERMINAL}  Connect to VM via SSH"
-  echo -e "  ${GREEN}11${NC} ${ICON_UI_GEAR}  Install SSH alias"
+  echo -e "  ${GREEN}11${NC} ${ICON_UI_BOOKMARK}  Install SSH alias"
   echo -e "  ${GREEN}q${NC}  ${ICON_UI_CLOSE}  Exit"
   echo ""
   read -r -p "${LIGHT_GRAY}Selection:${NC} " MENU_CHOICE
