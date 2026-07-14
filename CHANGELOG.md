@@ -28,6 +28,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Changed
 
+- Replace automatic changelog commits with local generation and CI validation ([#37](https://github.com/robert-flo/Valhalla/pull/37)). <!-- changelog-pr:37 -->
+
 - Document pull request history policy ([#29](https://github.com/robert-flo/Valhalla/pull/29)). <!-- changelog-pr:29 -->
 
 - Update custom Flatpak selection ([#28](https://github.com/robert-flo/Valhalla/pull/28)). <!-- changelog-pr:28 -->
