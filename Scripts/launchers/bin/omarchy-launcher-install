@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# omarchy:summary=Create a desktop launcher with a custom Exec line and metadata
+# omarchy:args=<file-name> <exec> <icon> [--name=...] [--comment=...] [--categories=...] [--keywords=...] [--mimetype=...] [--startupwmclass=...] [--startupnotify=...] [--genericname=...]
+
+set -e
+
+if (( $# < 3 )); then
+  echo "Usage: omarchy-launcher-install <file-name> <exec> <icon> [options...]"
+  exit 1
+fi
+
+FILE_NAME="$1"
+EXEC_LINE="$2"
+ICON_REF="$3"
+shift 3
+
+NAME="$FILE_NAME"
+COMMENT="$NAME"
+CATEGORIES=""
+KEYWORDS=""
+MIMETYPE=""
+STARTUPWMCLASS=""
+STARTUPNOTIFY="true"
+GENERICNAME=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  --name=*) NAME="${1#*=}" ;;
+  --comment=*) COMMENT="${1#*=}" ;;
+  --categories=*) CATEGORIES="${1#*=}" ;;
+  --keywords=*) KEYWORDS="${1#*=}" ;;
+  --mimetype=*) MIMETYPE="${1#*=}" ;;
+  --startupwmclass=*) STARTUPWMCLASS="${1#*=}" ;;
+  --startupnotify=*) STARTUPNOTIFY="${1#*=}" ;;
+  --genericname=*) GENERICNAME="${1#*=}" ;;
+  *)
+    echo "Unknown option: $1"
+    exit 1
+    ;;
+  esac
+  shift
+done
+
+ICON_DIR="$HOME/.local/share/applications/icons"
+DESKTOP_FILE="$HOME/.local/share/applications/$FILE_NAME.desktop"
+
+if [[ $ICON_REF == /* ]]; then
+  ICON_PATH="$ICON_REF"
+elif [[ $ICON_REF == *.* ]]; then
+  ICON_PATH="$ICON_DIR/$ICON_REF"
+else
+  ICON_PATH="$ICON_REF"
+fi
+
+{
+  echo "[Desktop Entry]"
+  echo "Version=1.0"
+  echo "Type=Application"
+  echo "Name=$NAME"
+  [[ -n $GENERICNAME ]] && echo "GenericName=$GENERICNAME"
+  echo "Comment=$COMMENT"
+  echo "Exec=$EXEC_LINE"
+  echo "Terminal=false"
+  echo "Icon=$ICON_PATH"
+  echo "StartupNotify=$STARTUPNOTIFY"
+  [[ -n $STARTUPWMCLASS ]] && echo "StartupWMClass=$STARTUPWMCLASS"
+  [[ -n $MIMETYPE ]] && echo "MimeType=$MIMETYPE"
+  [[ -n $CATEGORIES ]] && echo "Categories=$CATEGORIES"
+  [[ -n $KEYWORDS ]] && echo "Keywords=$KEYWORDS"
+} >"$DESKTOP_FILE"
+
+chmod +x "$DESKTOP_FILE"
