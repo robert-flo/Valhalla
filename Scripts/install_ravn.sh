@@ -517,4 +517,6 @@ main() {
   esac
 }
 
-main "$@"
+if [[ ${RAVN_INSTALLER_LIBRARY_ONLY:-0} != 1 ]]; then
+  main "$@"
+fi
