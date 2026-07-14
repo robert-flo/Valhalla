@@ -1236,7 +1236,7 @@ function run_interactive_menu() {
         run_external_repository || true
         ;;
       q | Q)
-        print_info "Goodbye!"
+        print_goodbye "Goodbye!"
         return 0
         ;;
       *)

@@ -85,6 +85,8 @@ readonly ICON_INSTRUCTIONS="📋"
 readonly ICON_WAITING="⏳"
 # shellcheck disable=SC2034
 readonly ICON_CLEANING="🧹"
+# shellcheck disable=SC2034
+readonly ICON_GOODBYE="👋"
 
 # Nerd Font catalog from Scripts/icons.lua. Keep semantic aliases above stable
 # for existing consumers; use this namespaced catalog for new interfaces.
@@ -357,6 +359,10 @@ print_warn() {
 
 print_info() {
   echo -e "  ${BLUE}${ICON_INFO}${NC} $1"
+}
+
+print_goodbye() {
+  echo -e "  ${BLUE}${ICON_GOODBYE}${NC} $1"
 }
 
 command_exists() {
