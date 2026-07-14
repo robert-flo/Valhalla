@@ -50,6 +50,9 @@ ifeq ($(firstword $(MAKECMDGOALS)),$(filter $(firstword $(MAKECMDGOALS)),git-cm 
 endif
 
 RAVN_WTS_DIR ?= $(abspath $(RAVN_DIR)/..)
+GIT_REMOTE ?= origin
+BASE_BRANCH ?= master
+PROTECTED_BRANCHES ?= master dev rc imgbot
 
 .PHONY: git-add git-commit git-cm git-add-commit git-push git-pull git-status git-diff git-log git-setup git-sync git-diff-dev git-diff-rc git-diff-here \
         git-add-fuzzy git-amend git-prune-branches git-diff-fuzzy git-search
@@ -398,20 +401,20 @@ git-setup: ## Clone a repo as bare + create all worktrees with upstream (use REP
 	printf "  • check git status:  $(BLUE)make git-status$(NC)\n\n"
 
 # ═══════════════════════════════════════════════════════════════
-# 🔄 GIT-SYNC - Rebase all topic branches from dev
+# 🔄 GIT-SYNC - Rebase all topic branches from the base branch
 # ═══════════════════════════════════════════════════════════════
-# ──── Sync: rebase each branch from origin/dev (local only) ───
+# ──── Sync: rebase each branch from origin/master by default ──
 # ──── Usage: make git-sync [REPO=name] ────────────────────────
 #
 # Branches synced: Dynamically detected from ~/Work/<repo>/
-# Branches EXCLUDED: dev master rc (protected/base branches)
+# Branches EXCLUDED: protected/base branches and active non-topic branches
 #
 # Override worktrees location:
 #   WORKTREES_HOME=~/Projects make git-sync REPO=RaVN
 REPO ?= RaVN
-git-sync: ## Update all topic branches from dev (local only, default REPO=RaVN)
+git-sync: ## Rebase all topic branches from origin/master (local only)
 	@printf "\n"
-	@printf "$(CYAN)🔄 git-sync · update all topic branches from dev$(NC)\n"
+	@printf "$(CYAN)🔄 git-sync · update topic branches from $(GIT_REMOTE)/$(BASE_BRANCH)$(NC)\n"
 	@printf "$(CYAN)────────────────────────────────────────────────────────────────────────────────$(NC)\n"
 	@if [ -z "$(REPO)" ]; then \
 		printf "$(RED)  ✗ missing required argument$(NC)\n\n"; \
@@ -442,12 +445,12 @@ git-sync: ## Update all topic branches from dev (local only, default REPO=RaVN)
 		[ -d "$$branch_dir" ] || continue; \
 		[ -e "$$branch_dir/.git" ] || continue; \
 		branch=$$(basename "$$branch_dir"); \
-		if [ "$$branch" = "dev" ] || [ "$$branch" = "master" ] || [ "$$branch" = "rc" ] || [ "$$branch" = "imgbot" ]; then \
+		if printf '%s\n' $(PROTECTED_BRANCHES) | grep -Fxq "$$branch"; then \
 			continue; \
 		fi; \
 		printf "  syncing $(BLUE)$$branch$(NC) ..."; \
 		is_dirty=$$(git -C "$$branch_dir" status --porcelain 2>/dev/null); \
-		err_log=$$(git -C "$$branch_dir" pull --rebase --autostash origin dev 2>&1); \
+		err_log=$$(git -C "$$branch_dir" pull --rebase --autostash $(GIT_REMOTE) $(BASE_BRANCH) 2>&1); \
 		if [ $$? -eq 0 ]; then \
 			if [ -n "$$is_dirty" ]; then \
 				printf " $(GREEN)✓$(NC) $(DIM)(autostashed)$(NC)\n"; \
@@ -464,12 +467,12 @@ git-sync: ## Update all topic branches from dev (local only, default REPO=RaVN)
 			FAILED="$$FAILED $$branch"; \
 		fi; \
 	done; \
-	printf "\n$(DIM)  dev, master, rc, imgbot: skipped (protected/base branches)$(NC)\n"; \
+	printf "\n$(DIM)  $(PROTECTED_BRANCHES): skipped (protected/base branches)$(NC)\n"; \
 	if [ -n "$$FAILED" ]; then \
 		printf "\n$(RED)  ✗ failed:$$FAILED$(NC)\n"; \
 		printf "  resolve conflicts manually with:\n"; \
 		for f in $$FAILED; do \
-			printf "  $(BLUE)git -C $$REPO_DIR/$$f pull --rebase origin dev$(NC)\n"; \
+			printf "  $(BLUE)git -C $$REPO_DIR/$$f pull --rebase $(GIT_REMOTE) $(BASE_BRANCH)$(NC)\n"; \
 		done; \
 		printf "\n"; \
 	else \
@@ -539,24 +542,24 @@ ifndef EMBEDDED
 endif
 
 # ═══════════════════════════════════════════════════════════════
-# 🔄 GIT-DIFF-HERE - Compare current branch/worktree against dev
+# 🔄 GIT-DIFF-HERE - Compare current branch/worktree against the base branch
 # ═══════════════════════════════════════════════════════════════
-# ──── Diff: Compare current worktree against dev using hunk ───
-git-diff-here: ## Compare current worktree against dev
+# ──── Diff: Compare current worktree against master by default ─
+git-diff-here: ## Compare current worktree against the base branch
 ifndef EMBEDDED
 	@printf "\n"
-	@printf "$(CYAN)🔄 git-diff-here · compare current worktree against dev$(NC)\n"
+	@printf "$(CYAN)🔄 git-diff-here · compare current worktree against $(BASE_BRANCH)$(NC)\n"
 	@printf "$(CYAN)────────────────────────────────────────────────────────────────────────────────$(NC)\n"
 endif
-	@if git show-ref --quiet refs/heads/dev; then \
-		printf "  comparing current worktree against dev...\n"; \
+	@if git show-ref --quiet refs/heads/$(BASE_BRANCH); then \
+		printf "  comparing current worktree against $(BASE_BRANCH)...\n"; \
 		if command -v hunk >/dev/null 2>&1; then \
-			git diff dev | hunk patch; \
+			git diff $(BASE_BRANCH) | hunk patch; \
 		else \
-			git diff --color=always dev 2>/dev/null || git diff dev; \
+			git diff --color=always $(BASE_BRANCH) 2>/dev/null || git diff $(BASE_BRANCH); \
 		fi; \
 	else \
-		printf "$(RED)  ✗ dev branch not found$(NC)\n"; \
+		printf "$(RED)  ✗ $(BASE_BRANCH) branch not found$(NC)\n"; \
 		exit 1; \
 	fi
 ifndef EMBEDDED
@@ -624,20 +627,30 @@ endif
 # ═══════════════════════════════════════════════════════════════
 # 🗑️  GIT-PRUNE-BRANCHES - Delete all local merged branches
 # ═══════════════════════════════════════════════════════════════
-# ──── Prune: Automatically removes local merged branches ──────
+# ──── Prune: Removes merged branches not used by worktrees ────
 git-prune-branches: ## Delete all local merged branches
 ifndef EMBEDDED
 	@printf "\n"
 	@printf "$(CYAN)🗑️  git-prune-branches · remove merged branches$(NC)\n"
 	@printf "$(CYAN)────────────────────────────────────────────────────────────────────────────────$(NC)\n"
 endif
-	@MERGED=$$(git branch --merged | sed -E 's|^[*+[:space:]]+||' | grep -E -v '^(dev|master|rc)$$' || true); \
-	if [ -n "$$MERGED" ]; then \
-		printf "  branches to delete:\n$$MERGED\n\n"; \
+	@MERGED=$$(git for-each-ref --merged HEAD --format='%(refname:short)' refs/heads); \
+	ACTIVE=$$(git worktree list --porcelain | sed -n 's|^branch refs/heads/||p'); \
+	TO_DELETE=""; \
+	for branch in $$MERGED; do \
+		if printf '%s\n' $(PROTECTED_BRANCHES) | grep -Fxq "$$branch"; then continue; fi; \
+		if printf '%s\n' "$$ACTIVE" | grep -Fxq "$$branch"; then continue; fi; \
+		TO_DELETE="$$TO_DELETE $$branch"; \
+	done; \
+	TO_DELETE=$$(printf '%s' "$$TO_DELETE" | xargs); \
+	if [ -n "$$TO_DELETE" ]; then \
+		printf "  branches to delete:\n"; \
+		printf '  %s\n' $$TO_DELETE; \
+		printf "\n"; \
 		if [ "$$DRY_RUN" = "1" ]; then \
-			printf "  ▶ [dry-run] git branch -d $$MERGED\n"; \
+			printf "  ▶ [dry-run] git branch -d $$TO_DELETE\n"; \
 		else \
-			echo "$$MERGED" | xargs -n 1 git branch -d; \
+			printf '%s\n' $$TO_DELETE | xargs -n 1 git branch -d; \
 			printf "$(GREEN)  ✓ merged branches deleted$(NC)\n"; \
 		fi; \
 	else \
