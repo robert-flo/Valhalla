@@ -91,7 +91,7 @@ help-aliases: ## Show list of legacy aliases and their modern equivalents
 	@printf "%-20s %-25s %s\n" "lg / git-lg" "git-log" "Git"
 	@printf "%-20s %-25s %s\n" "af / git-af" "git-add-fuzzy" "Git"
 	@printf "%-20s %-25s %s\n" "fuck / git-fuck" "git-amend" "Git"
-	@printf "%-20s %-25s %s\n" "bye / git-bye" "git-prune-branches" "Git"
+	@printf "%-20s %-25s %s\n" "clean / git-clean" "git-clean" "Git"
 	@printf "%-20s %-25s %s\n" "df / git-df" "git-diff-fuzzy" "Git"
 	@printf "%-20s %-25s %s\n" "fc / git-fc" "git-search CODE=\"..\"" "Git"
 	@printf "%-20s %-25s %s\n" "fm / git-fm" "git-search MSG=\"..\"" "Git"
@@ -201,7 +201,7 @@ git-l: git-pull
 git-lg: git-log
 git-af: git-add-fuzzy
 git-fuck: git-amend
-git-bye: git-prune-branches
+git-bye: git-clean
 git-df: git-diff-fuzzy
 git-fc: git-search
 git-fm: git-search
@@ -219,7 +219,8 @@ d: git-diff
 lg: git-log
 af: git-add-fuzzy
 fuck: git-amend
-bye: git-prune-branches
+bye: git-clean
+clean: git-clean
 df: git-diff-fuzzy
 fc: git-search
 fm: git-search

@@ -14,3 +14,6 @@ NC := \033[0m
 include make/dev.mk
 include make/git.mk
 include make/aliases.mk
+
+.PHONY: help
+help: help-ravnvm help-git help-aliases
