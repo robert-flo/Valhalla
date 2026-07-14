@@ -36,6 +36,8 @@ load_manifest() {
   while IFS='|' read -r flag destination artifact _owner || [[ -n $flag ]]; do
     [[ -z ${flag//[[:space:]]/} || $flag == \#* ]] && continue
     [[ $flag == P && -n $destination && -n $artifact ]] || continue
+    # Icons are installation inputs; only generated desktop entries are managed.
+    [[ $artifact == *.desktop ]] || continue
 
     destination="$(resolve_path "$destination")"
     resolved_path="$(realpath -m -- "$destination/$artifact")"
@@ -78,12 +80,14 @@ audit_launchers() {
 
 clean_launchers() {
   local launcher_path=""
+  local managed=()
   local existing=()
   local answer=""
   local dry_run="${DRY_RUN:-0}"
 
   print_section "${ICON_CLEANING} Clean managed launchers"
   while IFS= read -r launcher_path; do
+    managed+=("$launcher_path")
     [[ -e $launcher_path ]] && existing+=("$launcher_path")
   done < <(load_manifest)
 
@@ -96,6 +100,9 @@ clean_launchers() {
   for launcher_path in "${existing[@]}"; do
     print_info "$(display_path "$launcher_path")"
   done
+  echo ""
+  print_info "Managed: ${#managed[@]}"
+  print_info "Present: ${#existing[@]}"
   if [[ $dry_run == 1 ]]; then
     print_info "Dry run: no launcher artifacts were removed"
     return 0

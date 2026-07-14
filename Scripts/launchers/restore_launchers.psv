@@ -33,7 +33,7 @@ P|${HOME}/.local/share/applications|minimax Agent.desktop|desktop-launcher
 P|${HOME}/.local/share/applications|Monica HQ.desktop|desktop-launcher
 P|${HOME}/.local/share/applications|Netflix.desktop|desktop-launcher
 P|${HOME}/.local/share/applications|NotebookLM.desktop|desktop-launcher
-P|${HOME}/.local/share/applications|Notion.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Notion .desktop|desktop-launcher
 P|${HOME}/.local/share/applications|OpenClaw Dashboard.desktop|desktop-launcher
 P|${HOME}/.local/share/applications|Perplexity ai.desktop|desktop-launcher
 P|${HOME}/.local/share/applications|Raindrop.desktop|desktop-launcher
@@ -123,11 +123,9 @@ P|${HOME}/.local/share/applications/icons|Antigravity CLI.png|launcher-icon
 P|${HOME}/.local/share/applications/icons|Disk Usage.png|launcher-icon
 P|${HOME}/.local/share/applications/icons|Docker.png|launcher-icon
 P|${HOME}/.local/share/applications/icons|Hermes.png|launcher-icon
-P|${HOME}/.local/share/applications/icons|OpenClaude.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Claude AI.png|launcher-icon
 P|${HOME}/.local/share/applications/icons|OpenCode.png|launcher-icon
 P|${HOME}/.local/share/applications/icons|command-code.png|launcher-icon
 P|${HOME}/.local/share/applications/icons|ncdu.png|launcher-icon
 P|${HOME}/.local/share/applications/icons|omp.png|launcher-icon
-P|${HOME}/.local/share/applications/icons|Zero.png|launcher-icon
-P|${HOME}/.local/share/applications/icons|icon.png|launcher-icon
-P|${HOME}/.local/share/applications/icons|Gmail.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|zero.png|launcher-icon

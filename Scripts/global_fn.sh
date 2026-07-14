@@ -38,7 +38,7 @@ if [[ -t 1 && ${TERM:-dumb} != "dumb" && -z ${NO_COLOR:-} ]]; then
   readonly ICON_CROSS="✗"
   readonly ICON_ARROW="→"
   readonly ICON_WARN="⚠"
-  readonly ICON_INFO="ℹ"
+  readonly ICON_INFO=""
 else
   readonly RED=""
   readonly GREEN=""
@@ -85,6 +85,8 @@ readonly ICON_INSTRUCTIONS="📋"
 readonly ICON_WAITING="⏳"
 # shellcheck disable=SC2034
 readonly ICON_CLEANING="🧹"
+# shellcheck disable=SC2034
+readonly ICON_UPDATED="󰑐"
 # shellcheck disable=SC2034
 readonly ICON_GOODBYE="👋"
 

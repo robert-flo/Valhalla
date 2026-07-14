@@ -178,11 +178,12 @@ _ravn_print_group() {
 
 ravn_launchers_summary() {
   local total=$(( ${#RAVN_CREATED[@]} + ${#RAVN_UPDATED[@]} + ${#RAVN_FAILED[@]} ))
+  local updated_icon="${ICON_UPDATED:-󰑐}"
 
   echo ""
   echo "[launchers] resumen (${total} procesados)"
   _ravn_print_group "creados" "✓" "${RAVN_CREATED[@]}"
-  _ravn_print_group "actualizados" "↻" "${RAVN_UPDATED[@]}"
+  _ravn_print_group "actualizados" "$updated_icon" "${RAVN_UPDATED[@]}"
   _ravn_print_group "fallidos" "✗" "${RAVN_FAILED[@]}"
 
   if ((${#RAVN_FAILED[@]} > 0)); then
