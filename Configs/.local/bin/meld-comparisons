@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+set -u
+
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/global_fn.sh"
+
+WORK_ROOT="${HOME}/Work"
+VALHALLA="$WORK_ROOT/Valhalla/master"
+RAVN="$WORK_ROOT/RaVN/dev"
+ROLLO="$WORK_ROOT/Rollo/dev"
+HYDE="$WORK_ROOT/HyDE/master"
+
+run_meld() {
+    local paths=("$@")
+    local path=""
+
+    if ! command_exists meld; then
+        print_error "Meld is not installed or not available in PATH"
+        return 1
+  fi
+
+    for path in "${paths[@]}"; do
+        if [[ ! -d "$path" ]]; then
+            print_error "Directory not found: $path"
+            return 1
+    fi
+  done
+
+    print_info "Opening Meld comparison"
+    meld "${paths[@]}"
+}
+
+while true; do
+    clear || true
+    print_header "Meld comparisons"
+    print_section "Choose a comparison"
+    echo -e "  ${GREEN}1${NC}  ${ICON_GIT_GITHUB}  Valhalla vs RaVN vs Rollo (triple)"
+    echo -e "  ${GREEN}2${NC}  ${ICON_GIT_GITHUB}  Valhalla vs RaVN vs HyDE (triple)"
+    echo -e "  ${GREEN}3${NC}  ${ICON_GIT_GITHUB}  Valhalla vs HyDE"
+    echo -e "  ${GREEN}4${NC}  ${ICON_GIT_GITHUB}  Valhalla vs RaVN"
+    echo -e "  ${GREEN}5${NC}  ${ICON_GIT_GITHUB}  Valhalla vs Rollo"
+    echo -e "  ${GREEN}q${NC}  ${ICON_CROSS}  Exit"
+    echo ""
+    printf '%b' "${LIGHT_GRAY}Selection:${NC} "
+    read -r choice
+
+    case "$choice" in
+        1) run_meld "$VALHALLA" "$RAVN" "$ROLLO" ;;
+        2) run_meld "$VALHALLA" "$RAVN" "$HYDE" ;;
+        3) run_meld "$VALHALLA" "$HYDE" ;;
+        4) run_meld "$VALHALLA" "$RAVN" ;;
+        5) run_meld "$VALHALLA" "$ROLLO" ;;
+        q | Q)
+            echo ""
+            print_goodbye "Goodbye, ${USER:-$(id -un)}!"
+            echo ""
+            exit 0
+            ;;
+        *)
+            print_error "Invalid option: $choice"
+            ;;
+  esac
+done

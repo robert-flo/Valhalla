@@ -1236,7 +1236,9 @@ function run_interactive_menu() {
         run_external_repository || true
         ;;
       q | Q)
-        print_info "Goodbye!"
+        echo ""
+        print_goodbye "Goodbye, ${USER:-$(id -un)}!"
+        echo ""
         return 0
         ;;
       *)
