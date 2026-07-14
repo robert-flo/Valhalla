@@ -735,7 +735,7 @@ function list_snapshots() {
 }
 
 function clean_cache() {
-    print_step "Cleaning RavnVM cache (preserving base image)..."
+    echo "${ICON_CLEANING} Cleaning RavnVM cache (preserving base image)..."
     if [ ! -d "$CACHE_DIR" ]; then
         print_error "RavnVM cache directory not found"
         return 1

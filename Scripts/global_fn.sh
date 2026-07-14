@@ -83,6 +83,8 @@ readonly ICON_VM="🖥️"
 readonly ICON_INSTRUCTIONS="📋"
 # shellcheck disable=SC2034
 readonly ICON_WAITING="⏳"
+# shellcheck disable=SC2034
+readonly ICON_CLEANING="🧹"
 
 # Nerd Font catalog from Scripts/icons.lua. Keep semantic aliases above stable
 # for existing consumers; use this namespaced catalog for new interfaces.
