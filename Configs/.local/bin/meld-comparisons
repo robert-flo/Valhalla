@@ -36,11 +36,11 @@ while true; do
     clear || true
     print_header "Meld comparisons"
     print_section "Choose a comparison"
-    echo -e "  ${GREEN}1${NC}  ${ICON_GITHUB}  Valhalla vs RaVN vs Rollo (triple)"
-    echo -e "  ${GREEN}2${NC}  ${ICON_GITHUB}  Valhalla vs RaVN vs HyDE (triple)"
-    echo -e "  ${GREEN}3${NC}  ${ICON_GITHUB}  Valhalla vs HyDE"
-    echo -e "  ${GREEN}4${NC}  ${ICON_GITHUB}  Valhalla vs RaVN"
-    echo -e "  ${GREEN}5${NC}  ${ICON_GITHUB}  Valhalla vs Rollo"
+    echo -e "  ${GREEN}1${NC}  ${ICON_GIT_GITHUB}  Valhalla vs RaVN vs Rollo (triple)"
+    echo -e "  ${GREEN}2${NC}  ${ICON_GIT_GITHUB}  Valhalla vs RaVN vs HyDE (triple)"
+    echo -e "  ${GREEN}3${NC}  ${ICON_GIT_GITHUB}  Valhalla vs HyDE"
+    echo -e "  ${GREEN}4${NC}  ${ICON_GIT_GITHUB}  Valhalla vs RaVN"
+    echo -e "  ${GREEN}5${NC}  ${ICON_GIT_GITHUB}  Valhalla vs Rollo"
     echo -e "  ${GREEN}q${NC}  ${ICON_CROSS}  Exit"
     echo ""
     printf '%b' "${LIGHT_GRAY}Selection:${NC} "
@@ -53,7 +53,9 @@ while true; do
         4) run_meld "$VALHALLA" "$RAVN" ;;
         5) run_meld "$VALHALLA" "$ROLLO" ;;
         q | Q)
-            print_goodbye "Goodbye!"
+            echo ""
+            print_goodbye "Goodbye, ${USER:-$(id -un)}!"
+            echo ""
             exit 0
             ;;
         *)
