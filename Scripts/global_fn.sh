@@ -38,7 +38,7 @@ if [[ -t 1 && ${TERM:-dumb} != "dumb" && -z ${NO_COLOR:-} ]]; then
   readonly ICON_CROSS="✗"
   readonly ICON_ARROW="→"
   readonly ICON_WARN="⚠"
-  readonly ICON_INFO="ℹ"
+  readonly ICON_INFO=""
 else
   readonly RED=""
   readonly GREEN=""
@@ -76,7 +76,7 @@ readonly ICON_PACKAGE="[PACKAGE]"
 # shellcheck disable=SC2034
 readonly ICON_SNAPSHOT="📸"
 # shellcheck disable=SC2034
-readonly ICON_BUILD="🚀"
+readonly ICON_BUILD="🔨"
 # shellcheck disable=SC2034
 readonly ICON_VM="🖥️"
 # shellcheck disable=SC2034
