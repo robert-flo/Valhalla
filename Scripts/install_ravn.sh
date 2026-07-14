@@ -12,6 +12,8 @@ BINARIES_MANAGER="${BINARIES_DIR}/manage_binaries.sh"
 CONFIGURATIONS_DIR="${SCRIPT_DIR}/configurations"
 CONFIGURATIONS_INSTALLER="${CONFIGURATIONS_DIR}/install_configurations.sh"
 CONFIGURATIONS_MANAGER="${CONFIGURATIONS_DIR}/manage_configurations.sh"
+APPLICATIONS_DIR="${SCRIPT_DIR}/applications"
+APPLICATIONS_MANAGER="${APPLICATIONS_DIR}/manage_applications.sh"
 readonly CATEGORY_BINARIES="Binaries"
 readonly CATEGORY_CONFIGURATIONS="Configurations"
 readonly CATEGORY_APPLICATIONS="Applications"
@@ -120,7 +122,13 @@ install_category() {
         return 1
       fi
       ;;
-    applications) category_unavailable "$CATEGORY_APPLICATIONS" ;;
+    applications)
+      if install_all_applications; then
+        CATEGORY_RESULT="ok"
+      else
+        return 1
+      fi
+      ;;
     *)
       print_error "Unknown RaVN category: $1"
       return 2
@@ -223,6 +231,21 @@ test_configurations() {
 clean_configurations() {
   validate_configuration_sources || return 1
   bash "$CONFIGURATIONS_MANAGER" --clean
+}
+
+validate_application_sources() {
+  [[ -f $APPLICATIONS_MANAGER && -f ${APPLICATIONS_DIR}/pkg_ravn.lst ]]
+}
+
+install_all_applications() {
+  validate_application_sources || return 1
+  print_section "${ICON_BUILD} Install Applications"
+  bash "$APPLICATIONS_MANAGER" --install
+}
+
+test_applications() {
+  validate_application_sources || return 1
+  bash "$APPLICATIONS_MANAGER" --test
 }
 
 show_launchers_menu() {
@@ -336,6 +359,40 @@ run_configurations_menu() {
   done
 }
 
+run_applications_menu() {
+  local choice=""
+  while true; do
+    clear || true
+    print_header "$CATEGORY_APPLICATIONS"
+    print_section "${RAVN_ICON[ui_command]} Choose an action"
+    echo -e "  ${GREEN}1${NC}  ${RAVN_ICON[ui_package]}  Install everything"
+    echo -e "  ${GREEN}2${NC}  ${RAVN_ICON[ui_check]}  Run tests"
+    echo -e "  ${GREEN}3${NC}  ${ICON_CLEANING}  Rollback installed"
+    echo -e "  ${GREEN}q${NC}  ${RAVN_ICON[ui_arrow_left]}  Back"
+    printf '%b' "${LIGHT_GRAY}Selection:${NC} "
+    read -r choice
+    case "$choice" in
+      1)
+        install_all_applications || true
+        press_enter_to_continue
+        ;;
+      2)
+        test_applications || true
+        press_enter_to_continue
+        ;;
+      3)
+        print_info "Use manage_applications.sh rollback RUN_FILE to target a recorded run"
+        press_enter_to_continue
+        ;;
+      q | Q) return 0 ;;
+      *)
+        print_error "Invalid option: $choice"
+        press_enter_to_continue
+        ;;
+    esac
+  done
+}
+
 show_main_menu() {
   clear || true
   print_header "Ravn installer"
@@ -368,7 +425,7 @@ run_main_menu() {
         run_configurations_menu
         ;;
       4)
-        run_unavailable_category_menu "$CATEGORY_APPLICATIONS"
+        run_applications_menu
         ;;
       5)
         install_everything || true
@@ -395,9 +452,11 @@ Usage: install_ravn.sh [COMMAND]
 Commands:
   all, --all         Install all available RaVN categories
   launchers          Install all Desktop launchers
-  binaries           Report the Binaries category as unavailable
+  binaries           Install the RaVN Binaries category
   configurations     Install the RaVN Configurations overlay
-  applications       Report the Applications category as unavailable
+  applications       Install the RaVN Applications category
+  rollback-applications <run-file>
+                     Roll back explicitly installed packages from a run
   test, --test       Audit launcher artifacts declared in the manifest
   clean, --clean     Remove declared launcher artifacts after confirmation
   dry-run, --dry-run Show what installation would do without modifying $HOME
@@ -430,7 +489,10 @@ main() {
       install_all_configurations
       ;;
     applications)
-      install_category applications
+      install_all_applications
+      ;;
+    rollback-applications)
+      bash "$APPLICATIONS_MANAGER" --rollback "${2:-}"
       ;;
     test | --test)
       test_launchers
