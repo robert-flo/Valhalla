@@ -15,6 +15,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Added
 
+- feat: add progressive launcher installer menu ([#63](https://github.com/robert-flo/Valhalla/pull/63)). <!-- changelog-pr:63 -->
+
 - feat: add manifest-driven launcher cleanup ([#62](https://github.com/robert-flo/Valhalla/pull/62)). <!-- changelog-pr:62 -->
 
 - docs: record top-why utility ([#57](https://github.com/robert-flo/Valhalla/pull/57)). <!-- changelog-pr:57 -->
