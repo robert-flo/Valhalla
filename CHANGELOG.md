@@ -8,6 +8,11 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ## Unreleased
 
+### Fixed
+
+- fix: make git setup idempotent ([#45](https://github.com/robert-flo/Valhalla/pull/45)). <!-- changelog-pr:45 -->
+
+
 ### Added
 
 - Integrate Git operations into the Make workflow ([#44](https://github.com/robert-flo/Valhalla/pull/44)). <!-- changelog-pr:44 -->
