@@ -6,6 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LAUNCHERS_DIR="${SCRIPT_DIR}/launchers"
 LAUNCHER_INSTALLER="${LAUNCHERS_DIR}/install_launchers.sh"
 LAUNCHER_MANAGER="${LAUNCHERS_DIR}/manage_launchers.sh"
+BINARIES_DIR="${SCRIPT_DIR}/binaries"
+BINARIES_INSTALLER="${BINARIES_DIR}/install_binaries.sh"
+BINARIES_MANAGER="${BINARIES_DIR}/manage_binaries.sh"
 readonly CATEGORY_BINARIES="Binaries"
 readonly CATEGORY_CONFIGURATIONS="Configurations"
 readonly CATEGORY_APPLICATIONS="Applications"
@@ -100,7 +103,13 @@ install_category() {
         return 1
       fi
       ;;
-    binaries) category_unavailable "$CATEGORY_BINARIES" ;;
+    binaries)
+      if install_all_binaries; then
+        CATEGORY_RESULT="ok"
+      else
+        return 1
+      fi
+      ;;
     configurations) category_unavailable "$CATEGORY_CONFIGURATIONS" ;;
     applications) category_unavailable "$CATEGORY_APPLICATIONS" ;;
     *)
@@ -155,6 +164,32 @@ clean_launchers() {
   bash "$LAUNCHER_MANAGER" --clean
 }
 
+validate_binary_sources() {
+  local required_path=""
+  for required_path in "$BINARIES_INSTALLER" "$BINARIES_MANAGER" "${BINARIES_DIR}/restore_binaries.psv"; do
+    if [[ ! -f $required_path ]]; then
+      print_error "Required binary source not found: ${required_path#"$SCRIPT_DIR"/}"
+      return 1
+    fi
+  done
+}
+
+install_all_binaries() {
+  validate_binary_sources || return 1
+  print_section "${ICON_BUILD} Install Binaries"
+  bash "$BINARIES_INSTALLER"
+}
+
+test_binaries() {
+  validate_binary_sources || return 1
+  bash "$BINARIES_MANAGER" --test
+}
+
+clean_binaries() {
+  validate_binary_sources || return 1
+  bash "$BINARIES_MANAGER" --clean
+}
+
 show_launchers_menu() {
   clear || true
   print_header "Desktop launchers"
@@ -198,6 +233,40 @@ run_launchers_menu() {
   done
 }
 
+run_binaries_menu() {
+  local choice=""
+  while true; do
+    clear || true
+    print_header "$CATEGORY_BINARIES"
+    print_section "${RAVN_ICON[ui_command]} Choose an action"
+    echo -e "  ${GREEN}1${NC}  ${RAVN_ICON[ui_package]}  Install everything"
+    echo -e "  ${GREEN}2${NC}  ${RAVN_ICON[ui_check]}  Run tests"
+    echo -e "  ${GREEN}3${NC}  ${ICON_CLEANING}  Clean installed"
+    echo -e "  ${GREEN}q${NC}  ${RAVN_ICON[ui_arrow_left]}  Back"
+    printf '%b' "${LIGHT_GRAY}Selection:${NC} "
+    read -r choice
+    case "$choice" in
+      1)
+        install_all_binaries || true
+        press_enter_to_continue
+        ;;
+      2)
+        test_binaries || true
+        press_enter_to_continue
+        ;;
+      3)
+        clean_binaries || true
+        press_enter_to_continue
+        ;;
+      q | Q) return 0 ;;
+      *)
+        print_error "Invalid option: $choice"
+        press_enter_to_continue
+        ;;
+    esac
+  done
+}
+
 show_main_menu() {
   clear || true
   print_header "Ravn installer"
@@ -224,7 +293,7 @@ run_main_menu() {
         run_launchers_menu
         ;;
       2)
-        run_unavailable_category_menu "$CATEGORY_BINARIES"
+        run_binaries_menu
         ;;
       3)
         run_unavailable_category_menu "$CATEGORY_CONFIGURATIONS"
@@ -286,7 +355,7 @@ main() {
       install_category launchers
       ;;
     binaries)
-      install_category binaries
+      install_all_binaries
       ;;
     configurations)
       install_category configurations
