@@ -84,6 +84,12 @@ assert_contains "$ephemeral_output" "branch/commit: master"
 persistent_output=$(printf '2\n2\n\nq\n' | VM_QEMU_OVERRIDE=true "$RAVNVM_SCRIPT")
 assert_contains "$persistent_output" "persistent mode"
 assert_contains "$persistent_output" "branch/commit: dev"
+current_branch=$(git -C "$SCRIPT_DIR/../.." branch --show-current)
+current_slug="${current_branch//[^a-zA-Z0-9._-]/_}"
+current_digest=$(printf '%s' "$current_branch" | sha256sum | cut -c 1-12)
+touch "$XDG_CACHE_HOME/ravnvm/snapshots/ravn-${current_slug}-${current_digest}.qcow2"
+current_output=$(printf '3\n1\n\nq\n' | VM_QEMU_OVERRIDE=true "$RAVNVM_SCRIPT")
+assert_contains "$current_output" "branch/commit: $current_branch"
 custom_output=$(printf '4\ndev\n1\n\nq\n' | VM_QEMU_OVERRIDE=true "$RAVNVM_SCRIPT")
 assert_contains "$custom_output" "branch/commit: dev"
 
