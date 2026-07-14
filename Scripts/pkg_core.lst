@@ -116,6 +116,7 @@ tesseract-data-spa                                     # OCR Spanish language da
 wl-clipboard                                           # Command-line copy/paste utilities for Wayland
 
 # --------------------------------------------------- Dependencies
+qemu-desktop                                           # QEMU/KVM tools required by RavnVM
 sshpass                                                # non-interactive ssh password provider
 
 # --------------------------------------------------- Utilities & Debugging
