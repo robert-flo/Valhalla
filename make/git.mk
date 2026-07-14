@@ -400,6 +400,16 @@ git-setup: ## Clone a repo as bare + create all worktrees with upstream (use REP
 		printf "    $(DIM)WORKTREES_HOME$(NC)  worktrees base dir (default: $(DIM)~/Work$(NC))\n\n"; \
 		exit 1; \
 	fi; \
+	REPO_NAME=$$(basename "$(REPO)" .git); \
+	BARE_DIR=$${BARE_HOME:-$$HOME/.local/share/git-bare}/$$REPO_NAME; \
+	WORKTREE_DIR=$${WORKTREES_HOME:-$$HOME/Work}/$$REPO_NAME; \
+	if [ -d "$$BARE_DIR" ] && [ -d "$$WORKTREE_DIR" ] && \
+	   [ -f "$$WORKTREE_DIR/.git" ] && \
+	   git --git-dir="$$BARE_DIR" worktree list >/dev/null 2>&1; then \
+		printf "$(GREEN)  ✓ repository already configured$(NC)\n"; \
+		printf "  $(DIM)Bare:$(NC)      $$BARE_DIR\n"; \
+		printf "  $(DIM)Worktrees:$(NC) $$WORKTREE_DIR\n"; \
+	else \
 	if command -v git-bare-clone >/dev/null 2>&1; then \
 		SCRIPT="git-bare-clone"; \
 	elif [ -f "Configs/.local/bin/git-bare-clone" ]; then \
@@ -417,6 +427,7 @@ git-setup: ## Clone a repo as bare + create all worktrees with upstream (use REP
 		printf "  ▶ [dry-run] $$SCRIPT $(REPO)\n"; \
 	else \
 		$$SCRIPT $(REPO); \
+	fi; \
 	fi
 	@printf "\n$(GREEN)  ✓ done$(NC)\n"
 	@REPO_NAME=$$(basename "$(REPO)" .git); \
