@@ -15,19 +15,20 @@ io.gitlab.adhami3310.Impression                # Impression
 # org.signal.Signal                            # Signal
 # com.discordapp.Discord                       # Discord
 # dev.vencord.Vesktop                          # Vesktop
-io.github.spacingbat3.webcord                  # Webcord
+#io.github.spacingbat3.webcord                  # Webcord
 
 # ------------------------------------------- // Productivity
 # md.obsidian.Obsidian                         # Obsidian
 # org.mozilla.Thunderbird                      # Thunderbird
 # io.github.alainm23.planify                   # Planify
+com.calibre_ebook.calibre                      # Ebook management application
 
 # ------------------------------------------- // Image/Graphics
-org.inkscape.Inkscape                          # Inkscape
-org.kde.krita                                  # Krita
-org.gimp.GIMP                                  # Gimp
-org.blender.Blender                            # Blender
-io.gitlab.theevilskeleton.Upscaler             # ImageUpscaler
+#org.inkscape.Inkscape                          # Inkscape
+#org.kde.krita                                  # Krita
+#org.gimp.GIMP                                  # Gimp
+#org.blender.Blender                            # Blender
+#io.gitlab.theevilskeleton.Upscaler             # ImageUpscaler
 
 # ------------------------------------------- // Photography
 # org.gnome.Shotwell                           # Shotwell
@@ -38,11 +39,13 @@ org.gnome.eog                                  # ImageViewer
 # ------------------------------------------- // Audio/Video
 # com.spotify.Client                           # Spotify
 # org.kde.kdenlive                             # Kdenlive
-com.obsproject.Studio                          # Obs
-com.github.rafostar.Clapper                    # Clapper
-com.github.unrud.VideoDownloader               # VideoDownloader
+#com.obsproject.Studio                          # Obs
+#com.github.rafostar.Clapper                    # Clapper
+#com.github.unrud.VideoDownloader               # VideoDownloader
 
 # ------------------------------------------- // Gaming
 # hu.kramo.Cartridges                          # Cartridges
 # com.github.Matoking.protontricks             # ProtonTricks
 # net.davidotek.pupgui2                        # ProtonUp
+net.sourceforge.m64py.M64Py                    # Nintendo 64 Emulator
+io.github.gopher64.gopher64                    # Nintendo 64 Emulator
