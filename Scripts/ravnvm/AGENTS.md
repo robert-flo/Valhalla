@@ -6,12 +6,15 @@ the host working tree is not used as the VM's source code.
 
 # Ownership
 
-This directory owns the RavnVM CLI, VM lifecycle, snapshots, and executable
-tests. It is not part of the main dotfiles installer pipeline.
+This directory owns the RavnVM CLI, interactive menu, VM lifecycle, snapshots,
+storage reporting, and executable interaction tests. It is not part of the main
+dotfiles installer pipeline.
 
 # Local Contracts
 
 - **Entry point**: `ravnvm.sh` is the single executable interface.
+- **Interactive menu**: no-argument execution validates the environment, then
+  exposes revision execution, storage, snapshots, resources, usage, and SSH.
 - **Direct CLI**: preserve `--persist`, `--list`, `--clean`, `--install-deps`,
   `--check-deps`, `--ssh`, and `--help`, plus direct branch/commit arguments.
 - **VM defaults**: use `VM_MEMORY=4G` and `VM_CPUS=2` unless overridden for the
@@ -21,6 +24,28 @@ tests. It is not part of the main dotfiles installer pipeline.
   local-working-tree execution path.
 - **Cache**: use `$XDG_CACHE_HOME/ravnvm/`, preserving `archbase.qcow2` when
   cleaning snapshots and temporary VM data.
+- **Visual language**: preserve the numbered-menu convention with a green
+  selection key and clear section, prompt, status, and graceful-exit feedback.
+
+# Interactive Menu Contract
+
+The menu provides:
+
+1. Run master branch, with ephemeral or persistent mode.
+2. Run dev branch, with ephemeral or persistent mode.
+3. Run current branch, with ephemeral or persistent mode.
+4. Run another branch or commit, with ephemeral or persistent mode.
+5. Show VM storage usage.
+6. Clean VM cache.
+7. List VM snapshots.
+8. Configure RAM and CPU for the current session.
+9. Show the shared RavnVM usage information.
+10. Connect to the running VM through SSH.
+
+Missing dependencies must be handled before the normal menu and may offer only
+dependency installation or exit. Empty snapshots, failed cleanup, missing VMs,
+invalid input, normal exit, and Ctrl-C must return clear feedback without
+corrupting cached base data.
 
 # Work Guidance
 
@@ -28,15 +53,18 @@ tests. It is not part of the main dotfiles installer pipeline.
   executable behavior drift from the CLI contract.
 - Reuse existing VM, cache, snapshot, SSH, and usage functions before adding
   new seams.
+- Keep session resource changes in memory; do not create a persistent resource
+  configuration file unless explicitly requested.
 - Make changes on a feature branch and merge them into `master` through a PR.
 - Keep commits focused and preserve unrelated user changes.
 
 # Verification
 
-Run the executable CLI suite:
+Run the executable CLI and interaction suites:
 
 ```bash
 Scripts/ravnvm/tests/cli.sh
+Scripts/ravnvm/tests/menu.sh
 ```
 
 Also run `bash -n`, `shellcheck`, `shfmt`, and the repository pre-commit hook.

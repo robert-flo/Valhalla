@@ -10,6 +10,7 @@ RavnVM is a streamlined development tool that guides RaVN setup in a virtual mac
     - [NixOS](#nixos)
   - [First-Time Setup](#first-time-setup)
   - [Usage](#usage)
+    - [Interactive menu](#interactive-menu)
     - [Basic Commands](#basic-commands)
     - [Environment Variables](#environment-variables)
   - [VM Details](#vm-details)
@@ -91,6 +92,40 @@ When you run a new branch/commit for the first time, ravnvm will:
 
 
 ## Usage
+
+### Interactive menu
+
+Running `ravnvm` without arguments validates the host and opens the interactive
+menu:
+
+```text
+1  Run master branch
+2  Run dev branch
+3  Run current branch
+4  Run other branch or commit
+5  Show VM storage usage
+6  Clean VM cache
+7  List VM snapshots
+8  Configure RAM and CPU
+9  Show RavnVM usage
+10 Connect to VM via SSH
+q  Exit
+```
+
+Revision actions offer ephemeral and persistent modes before starting the VM.
+The custom action accepts a branch name or commit hash. All revision actions use
+the configured GitHub repository inside the VM and never provision from the
+host working tree.
+
+Resource changes apply only to the current menu session. Storage reports show
+the RavnVM cache, used filesystem space, and free space, with warnings at 80%
+and 90% usage. Missing KVM remains a warning because QEMU can run without
+hardware acceleration.
+
+If required commands are missing, the normal menu remains unavailable and
+RavnVM offers only dependency installation or exit. Use `q` for a normal exit;
+`Ctrl-C` reports the interruption and cleans temporary VM state without removing
+the cached base image.
 
 ### Basic Commands
 
