@@ -9,6 +9,9 @@ LAUNCHER_MANAGER="${LAUNCHERS_DIR}/manage_launchers.sh"
 BINARIES_DIR="${SCRIPT_DIR}/binaries"
 BINARIES_INSTALLER="${BINARIES_DIR}/install_binaries.sh"
 BINARIES_MANAGER="${BINARIES_DIR}/manage_binaries.sh"
+CONFIGURATIONS_DIR="${SCRIPT_DIR}/configurations"
+CONFIGURATIONS_INSTALLER="${CONFIGURATIONS_DIR}/install_configurations.sh"
+CONFIGURATIONS_MANAGER="${CONFIGURATIONS_DIR}/manage_configurations.sh"
 readonly CATEGORY_BINARIES="Binaries"
 readonly CATEGORY_CONFIGURATIONS="Configurations"
 readonly CATEGORY_APPLICATIONS="Applications"
@@ -110,7 +113,13 @@ install_category() {
         return 1
       fi
       ;;
-    configurations) category_unavailable "$CATEGORY_CONFIGURATIONS" ;;
+    configurations)
+      if install_all_configurations; then
+        CATEGORY_RESULT="ok"
+      else
+        return 1
+      fi
+      ;;
     applications) category_unavailable "$CATEGORY_APPLICATIONS" ;;
     *)
       print_error "Unknown RaVN category: $1"
@@ -190,6 +199,32 @@ clean_binaries() {
   bash "$BINARIES_MANAGER" --clean
 }
 
+validate_configuration_sources() {
+  local required_path=""
+  for required_path in "$CONFIGURATIONS_INSTALLER" "$CONFIGURATIONS_MANAGER" "${CONFIGURATIONS_DIR}/restore_configurations.psv"; do
+    if [[ ! -f $required_path ]]; then
+      print_error "Required configuration source not found: ${required_path#"$SCRIPT_DIR"/}"
+      return 1
+    fi
+  done
+}
+
+install_all_configurations() {
+  validate_configuration_sources || return 1
+  print_section "${ICON_BUILD} Install Configurations"
+  bash "$CONFIGURATIONS_INSTALLER"
+}
+
+test_configurations() {
+  validate_configuration_sources || return 1
+  bash "$CONFIGURATIONS_MANAGER" --test
+}
+
+clean_configurations() {
+  validate_configuration_sources || return 1
+  bash "$CONFIGURATIONS_MANAGER" --clean
+}
+
 show_launchers_menu() {
   clear || true
   print_header "Desktop launchers"
@@ -267,6 +302,40 @@ run_binaries_menu() {
   done
 }
 
+run_configurations_menu() {
+  local choice=""
+  while true; do
+    clear || true
+    print_header "$CATEGORY_CONFIGURATIONS"
+    print_section "${RAVN_ICON[ui_command]} Choose an action"
+    echo -e "  ${GREEN}1${NC}  ${RAVN_ICON[ui_package]}  Install everything"
+    echo -e "  ${GREEN}2${NC}  ${RAVN_ICON[ui_check]}  Run tests"
+    echo -e "  ${GREEN}3${NC}  ${ICON_CLEANING}  Clean installed"
+    echo -e "  ${GREEN}q${NC}  ${RAVN_ICON[ui_arrow_left]}  Back"
+    printf '%b' "${LIGHT_GRAY}Selection:${NC} "
+    read -r choice
+    case "$choice" in
+      1)
+        install_all_configurations || true
+        press_enter_to_continue
+        ;;
+      2)
+        test_configurations || true
+        press_enter_to_continue
+        ;;
+      3)
+        clean_configurations || true
+        press_enter_to_continue
+        ;;
+      q | Q) return 0 ;;
+      *)
+        print_error "Invalid option: $choice"
+        press_enter_to_continue
+        ;;
+    esac
+  done
+}
+
 show_main_menu() {
   clear || true
   print_header "Ravn installer"
@@ -296,7 +365,7 @@ run_main_menu() {
         run_binaries_menu
         ;;
       3)
-        run_unavailable_category_menu "$CATEGORY_CONFIGURATIONS"
+        run_configurations_menu
         ;;
       4)
         run_unavailable_category_menu "$CATEGORY_APPLICATIONS"
@@ -327,7 +396,7 @@ Commands:
   all, --all         Install all available RaVN categories
   launchers          Install all Desktop launchers
   binaries           Report the Binaries category as unavailable
-  configurations     Report the Configurations category as unavailable
+  configurations     Install the RaVN Configurations overlay
   applications       Report the Applications category as unavailable
   test, --test       Audit launcher artifacts declared in the manifest
   clean, --clean     Remove declared launcher artifacts after confirmation
@@ -358,7 +427,7 @@ main() {
       install_all_binaries
       ;;
     configurations)
-      install_category configurations
+      install_all_configurations
       ;;
     applications)
       install_category applications

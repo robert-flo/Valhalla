@@ -1,0 +1,7 @@
+# RaVN configuration overlay. Policies: P=preserve, S=sync.
+# flag|destination|artifact|owner
+P|${HOME}/.config/waybar|config.jsonc|ravn-configuration
+P|${HOME}/.config/waybar|style.css|ravn-configuration
+P|${HOME}/.config/waybar|theme.css|ravn-configuration
+P|${HOME}/.config/waybar|user-style.css|ravn-configuration
+S|${HOME}/.local/share|waybar|ravn-configuration

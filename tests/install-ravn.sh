@@ -26,7 +26,8 @@ assert_contains "$FIXTURE_DIR/binaries.out" "installed declared RaVN binaries"
 [[ -x "$HOME/.local/bin/ravn-dot" ]] || fail "Binaries dispatch did not install a declared binary"
 
 NO_COLOR=1 "$INSTALLER" configurations > "$FIXTURE_DIR/configurations.out"
-assert_contains "$FIXTURE_DIR/configurations.out" "Configurations are not available yet"
+assert_contains "$FIXTURE_DIR/configurations.out" "installed declared RaVN configuration overlay"
+[[ -f "$HOME/.config/waybar/config.jsonc" ]] || fail "Configurations dispatch did not install a declared resource"
 
 NO_COLOR=1 "$INSTALLER" help > "$FIXTURE_DIR/help.out"
 if grep -Fq 'install.sh' "$FIXTURE_DIR/help.out"; then
