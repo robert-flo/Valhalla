@@ -89,9 +89,6 @@ clean_launchers() {
     [[ -e $launcher_path ]] && existing+=("$launcher_path")
   done < <(load_manifest)
 
-  print_info "Managed: ${#managed[@]}"
-  print_info "Present: ${#existing[@]}"
-
   if ((${#existing[@]} == 0)); then
     print_info "No managed launcher artifacts found"
     return 0
@@ -101,6 +98,9 @@ clean_launchers() {
   for launcher_path in "${existing[@]}"; do
     print_info "$(display_path "$launcher_path")"
   done
+  echo ""
+  print_info "Managed: ${#managed[@]}"
+  print_info "Present: ${#existing[@]}"
   if [[ $dry_run == 1 ]]; then
     print_info "Dry run: no launcher artifacts were removed"
     return 0
