@@ -16,8 +16,11 @@ readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[0;33m'
 readonly NC='\033[0m'
 
-readonly -a REQUIRED_COMMANDS=(qemu-system-x86_64 qemu-img curl git ssh ssh-keyscan scp)
+readonly -a REQUIRED_COMMANDS=(qemu-system-x86_64 qemu-img curl git ssh ssh-keyscan scp sha256sum)
 readonly -a ARCH_PACKAGES=(qemu-desktop curl git openssh)
+
+ACTIVE_QEMU_PID=""
+TEMPORARY_PATHS=()
 
 print_error() {
   printf "${RED}Error:${NC} %s\n" "$*" >&2
@@ -31,12 +34,30 @@ print_success() {
   printf "${GREEN}%s${NC}\n" "$*"
 }
 
+cleanup_runtime() {
+  local temporary_path=""
+
+  if [[ -n $ACTIVE_QEMU_PID ]] && kill -0 "$ACTIVE_QEMU_PID" 2> /dev/null; then
+    kill "$ACTIVE_QEMU_PID" 2> /dev/null || true
+    wait "$ACTIVE_QEMU_PID" 2> /dev/null || true
+  fi
+  for temporary_path in "${TEMPORARY_PATHS[@]}"; do
+    rm -rf -- "$temporary_path"
+  done
+  rm -f -- "$BASE_IMAGE.part"
+}
+
 handle_interrupt() {
-  print_warning "RavnVM interrupted; cached base data was preserved"
+  print_warning "RavnVM interrupted; temporary state was removed and the cached base was preserved"
   exit 130
 }
 
+register_temporary_path() {
+  TEMPORARY_PATHS+=("$1")
+}
+
 trap handle_interrupt INT TERM
+trap cleanup_runtime EXIT
 
 print_usage() {
   cat << 'USAGE'
@@ -148,14 +169,19 @@ ensure_cache() {
   mkdir -p "$CACHE_DIR" "$SNAPSHOTS_DIR"
 }
 
-sanitize_revision() {
+snapshot_id_for() {
   local revision="$1"
-  printf '%s\n' "${revision//[^a-zA-Z0-9._-]/_}"
+  local slug="${revision//[^a-zA-Z0-9._-]/_}"
+  local digest=""
+
+  slug="${slug:0:64}"
+  digest=$(printf '%s' "$revision" | sha256sum | cut -c 1-12)
+  printf '%s-%s\n' "$slug" "$digest"
 }
 
 snapshot_path_for() {
   local revision="$1"
-  printf '%s/ravn-%s.qcow2\n' "$SNAPSHOTS_DIR" "$(sanitize_revision "$revision")"
+  printf '%s/ravn-%s.qcow2\n' "$SNAPSHOTS_DIR" "$(snapshot_id_for "$revision")"
 }
 
 list_snapshots() {
@@ -200,7 +226,6 @@ qemu_command() {
   local vm_disk="$1"
   local memory="$2"
   local cpus="$3"
-  local forward_ssh="${4:-true}"
   local -a args=(
     -m "$memory"
     -smp "$cpus"
@@ -224,9 +249,7 @@ qemu_command() {
     args+=(-cpu qemu64)
   fi
 
-  if [[ $forward_ssh == true ]]; then
-    args+=(-device "virtio-net,netdev=net0" -netdev "user,id=net0,hostfwd=tcp::${SSH_PORT}-:22")
-  fi
+  args+=(-device "virtio-net,netdev=net0" -netdev "user,id=net0,hostfwd=tcp::${SSH_PORT}-:22")
 
   if [[ -n ${VM_EXTRA_ARGS:-} ]]; then
     read -r -a extra_args <<< "$VM_EXTRA_ARGS"
@@ -297,6 +320,7 @@ create_snapshot() {
   local snapshot_path=""
   local temporary_disk=""
   local setup_script=""
+  local setup_completed=""
   local qemu_pid=""
 
   snapshot_path=$(snapshot_path_for "$revision")
@@ -305,23 +329,42 @@ create_snapshot() {
   download_base_image
   temporary_disk=$(mktemp -p "$CACHE_DIR" 'setup.XXXXXX.qcow2')
   setup_script=$(mktemp -p "$CACHE_DIR" 'setup.XXXXXX.sh')
+  register_temporary_path "$temporary_disk"
+  register_temporary_path "$setup_script"
   qemu-img create -f qcow2 -F qcow2 -b "$BASE_IMAGE" "$temporary_disk"
   write_guest_setup "$setup_script"
 
   printf 'Creating the RaVN snapshot for %s...\n' "$revision"
   printf 'After login, run: ./setup.sh %q %q; then sudo poweroff\n' "$RAVN_REPO" "$revision"
-  qemu_command "$temporary_disk" "${VM_MEMORY:-$DEFAULT_MEMORY}" "${VM_CPUS:-$DEFAULT_CPUS}" true &
+  qemu_command "$temporary_disk" "${VM_MEMORY:-$DEFAULT_MEMORY}" "${VM_CPUS:-$DEFAULT_CPUS}" &
   qemu_pid=$!
+  ACTIVE_QEMU_PID="$qemu_pid"
 
   if ! copy_setup_when_ready "$qemu_pid" "$setup_script"; then
     kill "$qemu_pid" 2> /dev/null || true
     wait "$qemu_pid" 2> /dev/null || true
-    rm -f "$temporary_disk" "$setup_script"
+    ACTIVE_QEMU_PID=""
     return 1
   fi
 
-  wait "$qemu_pid"
-  qemu-img convert -O qcow2 "$temporary_disk" "$snapshot_path"
+  if ! wait "$qemu_pid"; then
+    ACTIVE_QEMU_PID=""
+    print_error "The setup VM exited with an error; no snapshot was cached"
+    return 1
+  fi
+  ACTIVE_QEMU_PID=""
+
+  if ! read -r -p "Did RaVN setup complete successfully inside the VM? [y/N] " setup_completed ||
+    [[ ! $setup_completed =~ ^[Yy]$ ]]; then
+    print_error "Setup was not confirmed; no revision snapshot was cached"
+    return 1
+  fi
+
+  if ! qemu-img convert -O qcow2 "$temporary_disk" "$snapshot_path"; then
+    rm -f "$snapshot_path"
+    print_error "Unable to create the revision snapshot"
+    return 1
+  fi
   rm -f "$temporary_disk" "$setup_script"
   print_success "Snapshot created for $revision"
 }
@@ -342,12 +385,13 @@ run_vm() {
   else
     printf 'Running in non-persistent mode; changes will be discarded.\n'
     vm_disk=$(mktemp -p "$CACHE_DIR" 'overlay.XXXXXX.qcow2')
+    register_temporary_path "$vm_disk"
     qemu-img create -f qcow2 -F qcow2 -b "$snapshot_path" "$vm_disk"
   fi
 
   printf 'Starting RaVN VM (branch/commit: %s)...\n' "$revision"
   printf 'Login: arch / arch; SSH: ssh arch@127.0.0.1 -p %s\n' "$SSH_PORT"
-  qemu_command "$vm_disk" "${VM_MEMORY:-$DEFAULT_MEMORY}" "${VM_CPUS:-$DEFAULT_CPUS}" true || status=$?
+  qemu_command "$vm_disk" "${VM_MEMORY:-$DEFAULT_MEMORY}" "${VM_CPUS:-$DEFAULT_CPUS}" || status=$?
 
   if [[ $persistent != true ]]; then
     rm -f "$vm_disk"
@@ -373,6 +417,7 @@ run_revision() {
 
 main() {
   local revision="master"
+  local revision_was_set=false
   local persistent=false
 
   while (($# > 0)); do
@@ -410,11 +455,12 @@ main() {
         return 2
         ;;
       *)
-        if [[ $revision != master ]]; then
+        if [[ $revision_was_set == true ]]; then
           print_error "Only one branch or commit may be specified"
           return 2
         fi
         revision="$1"
+        revision_was_set=true
         ;;
     esac
     shift

@@ -1,6 +1,6 @@
 # RavnVM - Simplified VM Tool for RaVN Contributors
 
-RavnVM is a streamlined development tool that automatically sets up RaVN in a virtual machine for testing different branches and commits.
+RavnVM is a streamlined development tool that guides RaVN setup in a virtual machine for testing different branches and commits.
 
 - [RavnVM - Simplified VM Tool for RaVN Contributors](#ravnvm---simplified-vm-tool-for-ravn-contributors)
   - [Hardware Requirements](#hardware-requirements)
@@ -156,13 +156,13 @@ virtualisation.libvirtd.enable = true;
 
 ### Missing Dependencies
 
-- **Arch**: Script will prompt to install missing packages
-- **NixOS**: Nix will automatically install missing packages
+- **Arch**: Run `ravnvm --install-deps` when the dependency check reports missing commands.
+- **NixOS**: Run RavnVM through the flake so its runtime commands are provided by Nix.
 
 ### Clean Start
 
 ```bash
-ravnvm --clean  # Remove all cached data from $XDG_CACHE_HOME/ravnvm/
+ravnvm --clean  # Remove snapshots and temporary data; preserve archbase.qcow2
 ```
 
 ### Killing http server
