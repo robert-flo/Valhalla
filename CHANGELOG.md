@@ -15,6 +15,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Added
 
+- feat: build progressive RaVN installer orchestrator ([#73](https://github.com/robert-flo/Valhalla/pull/73)). <!-- changelog-pr:73 -->
+
 - feat: make launcher assets self-contained ([#65](https://github.com/robert-flo/Valhalla/pull/65)). <!-- changelog-pr:65 -->
 
 - feat: add direct installer commands ([#64](https://github.com/robert-flo/Valhalla/pull/64)). <!-- changelog-pr:64 -->

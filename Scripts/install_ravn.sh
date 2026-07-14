@@ -6,7 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LAUNCHERS_DIR="${SCRIPT_DIR}/launchers"
 LAUNCHER_INSTALLER="${LAUNCHERS_DIR}/install_launchers.sh"
 LAUNCHER_MANAGER="${LAUNCHERS_DIR}/manage_launchers.sh"
-LEGACY_INSTALLER="${SCRIPT_DIR}/install.sh"
+readonly CATEGORY_BINARIES="Binaries"
+readonly CATEGORY_CONFIGURATIONS="Configurations"
+readonly CATEGORY_APPLICATIONS="Applications"
 
 # shellcheck disable=SC1091
 if ! source "${SCRIPT_DIR}/global_fn.sh"; then
@@ -27,7 +29,7 @@ press_enter_to_continue() {
 validate_launcher_sources() {
   local required_path=""
 
-  for required_path in "$LEGACY_INSTALLER" "$LAUNCHER_INSTALLER" "$LAUNCHER_MANAGER" "${LAUNCHERS_DIR}/restore_launchers.psv"; do
+  for required_path in "$LAUNCHER_INSTALLER" "$LAUNCHER_MANAGER" "${LAUNCHERS_DIR}/restore_launchers.psv"; do
     if [[ ! -f $required_path ]]; then
       print_error "Required launcher source not found: ${required_path#"$SCRIPT_DIR"/}"
       return 1
@@ -50,8 +52,91 @@ install_all_launchers() {
   fi
 }
 
-run_all() {
-  install_all_launchers
+category_unavailable() {
+  CATEGORY_RESULT="unavailable"
+  print_warn "$1 are not available yet"
+  print_info "This category is visible for discovery and did not change your system"
+}
+
+run_unavailable_category_menu() {
+  local category="$1"
+  local choice=""
+
+  while true; do
+    clear || true
+    print_header "$category"
+    print_section "${RAVN_ICON[ui_command]} Choose an action"
+    echo -e "  ${GREEN}1${NC}  ${RAVN_ICON[ui_package]}  Install everything"
+    echo -e "  ${GREEN}2${NC}  ${RAVN_ICON[ui_check]}  Run tests"
+    echo -e "  ${GREEN}3${NC}  ${ICON_CLEANING}  Clean installed"
+    echo -e "  ${GREEN}q${NC}  ${RAVN_ICON[ui_arrow_left]}  Back"
+    echo ""
+    printf '%b' "${LIGHT_GRAY}Selection:${NC} "
+    read -r choice
+
+    case "$choice" in
+      1 | 2 | 3)
+        category_unavailable "$category"
+        press_enter_to_continue
+        ;;
+      q | Q)
+        return 0
+        ;;
+      *)
+        print_error "Invalid option: $choice"
+        press_enter_to_continue
+        ;;
+    esac
+  done
+}
+
+install_category() {
+  CATEGORY_RESULT="failed"
+  case "$1" in
+    launchers)
+      if install_all_launchers; then
+        CATEGORY_RESULT="ok"
+      else
+        return 1
+      fi
+      ;;
+    binaries) category_unavailable "$CATEGORY_BINARIES" ;;
+    configurations) category_unavailable "$CATEGORY_CONFIGURATIONS" ;;
+    applications) category_unavailable "$CATEGORY_APPLICATIONS" ;;
+    *)
+      print_error "Unknown RaVN category: $1"
+      return 2
+      ;;
+  esac
+}
+
+install_everything() {
+  local category=""
+  local failed=0
+  local status=0
+  local -a results=()
+
+  print_header "Install everything"
+  for category in launchers binaries configurations applications; do
+    if install_category "$category"; then
+      results+=("$category:${CATEGORY_RESULT}")
+    else
+      status=$?
+      results+=("$category:failed($status)")
+      ((failed += 1))
+    fi
+  done
+  print_section "Installation summary"
+  for status in "${results[@]}"; do
+    if [[ $status == *:ok ]]; then
+      print_success "$status"
+    elif [[ $status == *:unavailable ]]; then
+      print_warn "$status"
+    else
+      print_error "$status"
+    fi
+  done
+  ((failed == 0))
 }
 
 test_launchers() {
@@ -118,6 +203,10 @@ show_main_menu() {
   print_header "Ravn installer"
   print_section "${RAVN_ICON[ui_command]} Choose an installation step"
   echo -e "  ${GREEN}1${NC}  ${RAVN_ICON[ui_package]}  Desktop launchers"
+  echo -e "  ${GREEN}2${NC}  ${RAVN_ICON[ui_terminal]}  Binaries"
+  echo -e "  ${GREEN}3${NC}  ${RAVN_ICON[ui_gear]}  Configurations"
+  echo -e "  ${GREEN}4${NC}  ${RAVN_ICON[ui_package]}  Applications"
+  echo -e "  ${GREEN}5${NC}  ${RAVN_ICON[ui_rocket]}  Install everything"
   echo -e "  ${GREEN}q${NC}  ${RAVN_ICON[ui_close]}  Exit"
   echo ""
   printf '%b' "${LIGHT_GRAY}Selection:${NC} "
@@ -133,6 +222,19 @@ run_main_menu() {
     case "$choice" in
       1)
         run_launchers_menu
+        ;;
+      2)
+        run_unavailable_category_menu "$CATEGORY_BINARIES"
+        ;;
+      3)
+        run_unavailable_category_menu "$CATEGORY_CONFIGURATIONS"
+        ;;
+      4)
+        run_unavailable_category_menu "$CATEGORY_APPLICATIONS"
+        ;;
+      5)
+        install_everything || true
+        press_enter_to_continue
         ;;
       q | Q)
         echo ""
@@ -153,7 +255,11 @@ print_usage() {
 Usage: install_ravn.sh [COMMAND]
 
 Commands:
-  all, --all         Install all Desktop launchers
+  all, --all         Install all available RaVN categories
+  launchers          Install all Desktop launchers
+  binaries           Report the Binaries category as unavailable
+  configurations     Report the Configurations category as unavailable
+  applications       Report the Applications category as unavailable
   test, --test       Audit launcher artifacts declared in the manifest
   clean, --clean     Remove declared launcher artifacts after confirmation
   dry-run, --dry-run Show what installation would do without modifying $HOME
@@ -174,7 +280,19 @@ run_dry_run() {
 main() {
   case "${1:-menu}" in
     all | --all)
-      run_all
+      install_everything
+      ;;
+    launchers)
+      install_category launchers
+      ;;
+    binaries)
+      install_category binaries
+      ;;
+    configurations)
+      install_category configurations
+      ;;
+    applications)
+      install_category applications
       ;;
     test | --test)
       test_launchers
