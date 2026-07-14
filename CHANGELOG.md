@@ -10,6 +10,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Added
 
+- Añadir un menú interactivo validado a RavnVM ([#34](https://github.com/robert-flo/Valhalla/pull/34)). <!-- changelog-pr:34 -->
+
 - Replace deprecated HyDeVM with RavnVM ([#33](https://github.com/robert-flo/Valhalla/pull/33)). <!-- changelog-pr:33 -->
 
 - Integrate RaVN packages into core installation ([#4](https://github.com/robert-flo/Valhalla/pull/4)). <!-- changelog-pr:4 -->
