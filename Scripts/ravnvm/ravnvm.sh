@@ -226,6 +226,7 @@ qemu_command() {
   local vm_disk="$1"
   local memory="$2"
   local cpus="$3"
+  local execution_mode="${4:-foreground}"
   local -a args=(
     -m "$memory"
     -smp "$cpus"
@@ -239,6 +240,11 @@ qemu_command() {
   if [[ -n ${VM_QEMU_OVERRIDE:-} ]]; then
     local override="${VM_QEMU_OVERRIDE//\$VM_DISK/$vm_disk}"
     printf 'Using the configured QEMU override...\n'
+    if [[ $execution_mode == background ]]; then
+      bash -c "$override" &
+      ACTIVE_QEMU_PID=$!
+      return 0
+    fi
     bash -c "$override"
     return
   fi
@@ -254,6 +260,12 @@ qemu_command() {
   if [[ -n ${VM_EXTRA_ARGS:-} ]]; then
     read -r -a extra_args <<< "$VM_EXTRA_ARGS"
     args+=("${extra_args[@]}")
+  fi
+
+  if [[ $execution_mode == background ]]; then
+    qemu-system-x86_64 "${args[@]}" 2> "$CACHE_DIR/qemu.log" &
+    ACTIVE_QEMU_PID=$!
+    return 0
   fi
 
   if ! qemu-system-x86_64 "${args[@]}" 2> "$CACHE_DIR/qemu.log"; then
@@ -336,9 +348,8 @@ create_snapshot() {
 
   printf 'Creating the RaVN snapshot for %s...\n' "$revision"
   printf 'After login, run: ./setup.sh %q %q; then sudo poweroff\n' "$RAVN_REPO" "$revision"
-  qemu_command "$temporary_disk" "${VM_MEMORY:-$DEFAULT_MEMORY}" "${VM_CPUS:-$DEFAULT_CPUS}" &
-  qemu_pid=$!
-  ACTIVE_QEMU_PID="$qemu_pid"
+  qemu_command "$temporary_disk" "${VM_MEMORY:-$DEFAULT_MEMORY}" "${VM_CPUS:-$DEFAULT_CPUS}" background
+  qemu_pid="$ACTIVE_QEMU_PID"
 
   if ! copy_setup_when_ready "$qemu_pid" "$setup_script"; then
     kill "$qemu_pid" 2> /dev/null || true
@@ -366,6 +377,7 @@ create_snapshot() {
     return 1
   fi
   rm -f "$temporary_disk" "$setup_script"
+  TEMPORARY_PATHS=()
   print_success "Snapshot created for $revision"
 }
 
@@ -395,6 +407,7 @@ run_vm() {
 
   if [[ $persistent != true ]]; then
     rm -f "$vm_disk"
+    TEMPORARY_PATHS=()
   fi
   return "$status"
 }

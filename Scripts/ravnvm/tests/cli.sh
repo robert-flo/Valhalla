@@ -90,4 +90,22 @@ if find "$XDG_CACHE_HOME/ravnvm" -maxdepth 1 \( -name 'setup.*' -o -name 'overla
   fail "a failed setup left temporary cache data"
 fi
 
+qemu_pid_file="$FIXTURE_DIR/qemu.pid"
+interrupt_output="$FIXTURE_DIR/interrupt.out"
+VM_QEMU_OVERRIDE="printf '%s\\n' \$\$ > '$qemu_pid_file'; exec sleep 30" \
+  "$RAVNVM_SCRIPT" interrupted < /dev/null > "$interrupt_output" 2>&1 &
+ravnvm_pid=$!
+for _ in {1..50}; do
+  [[ -s $qemu_pid_file ]] && break
+  sleep 0.1
+done
+[[ -s $qemu_pid_file ]] || fail "the setup QEMU PID was not observable"
+qemu_pid=$(< "$qemu_pid_file")
+kill -TERM "$ravnvm_pid"
+wait "$ravnvm_pid" 2> /dev/null || true
+if kill -0 "$qemu_pid" 2> /dev/null; then
+  kill "$qemu_pid" 2> /dev/null || true
+  fail "interrupt left the setup QEMU process running"
+fi
+
 printf 'PASS: RavnVM direct CLI\n'

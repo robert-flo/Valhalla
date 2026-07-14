@@ -17,7 +17,6 @@ RavnVM is a streamlined development tool that guides RaVN setup in a virtual mac
     - [KVM Not Available](#kvm-not-available)
     - [Missing Dependencies](#missing-dependencies)
     - [Clean Start](#clean-start)
-    - [Killing http server](#killing-http-server)
   - [VM Host Guide](#vm-host-guide)
     - [Hardware Requirements (Detailed)](#hardware-requirements-detailed)
     - [Non-NixOS Hosts using Nix](#non-nixos-hosts-using-nix)
@@ -77,7 +76,7 @@ nix run
 When you run a new branch/commit for the first time, ravnvm will:
 
 1. **OS Detection**: Automatically detects your OS and checks dependencies
-2. **Dependency Installation**: (Arch only) Prompts to install missing packages
+2. **Dependency Installation**: On Arch, reports when `ravnvm --install-deps` is required
 3. **VM Setup**: Copies a setup script into the VM and shows the command to run
 4. **RaVN Installation**: You'll need to:
    - Login as `arch` / `arch`
@@ -163,14 +162,6 @@ virtualisation.libvirtd.enable = true;
 
 ```bash
 ravnvm --clean  # Remove snapshots and temporary data; preserve archbase.qcow2
-```
-
-### Killing http server
-
-If you are running into issues with the http server, you can kill it with:
-
-```bash
-pkill -f "python3 -m http.server"
 ```
 
 ## VM Host Guide
