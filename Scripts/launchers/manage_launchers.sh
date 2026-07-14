@@ -78,14 +78,19 @@ audit_launchers() {
 
 clean_launchers() {
   local launcher_path=""
+  local managed=()
   local existing=()
   local answer=""
   local dry_run="${DRY_RUN:-0}"
 
   print_section "${ICON_CLEANING} Clean managed launchers"
   while IFS= read -r launcher_path; do
+    managed+=("$launcher_path")
     [[ -e $launcher_path ]] && existing+=("$launcher_path")
   done < <(load_manifest)
+
+  print_info "Managed: ${#managed[@]}"
+  print_info "Present: ${#existing[@]}"
 
   if ((${#existing[@]} == 0)); then
     print_info "No managed launcher artifacts found"
