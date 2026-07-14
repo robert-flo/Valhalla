@@ -187,7 +187,9 @@ function normalize_repository_url() {
     fi
         repository="https://github.com/${repository}"
   elif   [[ $repository =~ ^https://github\.com/[^/]+/[^/]+$ ]]; then
-        repository="${repository}.git"
+        if [[ $repository != *.git ]]; then
+            repository="${repository}.git"
+    fi
   fi
 
     if [[ ! $repository =~ ^https://[^[:space:]]+\.git$ ]]; then
@@ -560,10 +562,10 @@ function create_ravn_snapshot() {
 set -e
 export GIT_TERMINAL_PROMPT=0
 
-guest_step() { printf '▶ %s\n' "$*"; }
-guest_info() { printf '  %s\n' "$*"; }
-guest_warn() { printf '⚠ %s\n' "$*" >&2; }
-guest_success() { printf '✓ %s\n' "$*"; }
+guest_step() { printf '▶ %s\n' "\$*"; }
+guest_info() { printf '  %s\n' "\$*"; }
+guest_warn() { printf '⚠ %s\n' "\$*" >&2; }
+guest_success() { printf '✓ %s\n' "\$*"; }
 
 guest_step "Setting up RaVN environment for branch/commit: $ref"
 
