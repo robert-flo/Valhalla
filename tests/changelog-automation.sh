@@ -44,6 +44,10 @@ run_updater 42 '42 - Add idempotent changelog entries' 'changelog:added'
 test "$(grep -Fc 'changelog-pr:42' "$fixture_root/CHANGELOG.md")" -eq 1
 grep -Fq 'Add idempotent changelog entries ([#42](https://github.com/example/repo/pull/42)). <!-- changelog-pr:42 -->' "$fixture_root/CHANGELOG.md"
 
+before_idempotent_update=$(sha256sum "$fixture_root/CHANGELOG.md")
+run_updater 42 '42 - Add idempotent changelog entries' 'changelog:added'
+test "$before_idempotent_update" = "$(sha256sum "$fixture_root/CHANGELOG.md")"
+
 run_updater 43 'Improve contributor workflow' ''
 grep -Fq 'Improve contributor workflow ([#43](https://github.com/example/repo/pull/43)). <!-- changelog-pr:43 -->' "$fixture_root/CHANGELOG.md"
 
