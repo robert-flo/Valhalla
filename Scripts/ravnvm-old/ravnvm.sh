@@ -34,6 +34,7 @@ set -e
 
 ACTIVE_QEMU_PID=""
 TEMPORARY_PATHS=()
+VM_LOCK_FD=""
 
 function cleanup_runtime() {
   local temporary_path=""
@@ -57,6 +58,24 @@ function handle_interrupt() {
 
 function register_temporary_path() {
   TEMPORARY_PATHS+=("$1")
+}
+
+function acquire_vm_lock() {
+  exec {VM_LOCK_FD}> "$CACHE_DIR/session.lock"
+  if ! flock -n "$VM_LOCK_FD"; then
+    exec {VM_LOCK_FD}>&-
+    VM_LOCK_FD=""
+    print_error "Another RavnVM session is already active; close it before starting a new VM"
+    return 1
+  fi
+}
+
+function release_vm_lock() {
+  if [[ -n $VM_LOCK_FD ]]; then
+    flock -u "$VM_LOCK_FD"
+    exec {VM_LOCK_FD}>&-
+    VM_LOCK_FD=""
+  fi
 }
 
 trap handle_interrupt INT TERM
@@ -722,7 +741,8 @@ function clean_cache() {
         return 1
   fi
 
-    if ! find "$CACHE_DIR" -mindepth 1 -maxdepth 1 ! -name "archbase.qcow2" -exec rm -rf {} +; then
+    if ! find "$CACHE_DIR" -mindepth 1 -maxdepth 1 \
+        ! -name "archbase.qcow2" ! -name "session.lock" -exec rm -rf {} +; then
         print_error "Unable to clean RavnVM cache"
         return 1
   fi
@@ -1053,15 +1073,24 @@ function install_ssh_alias() {
 function run_vm_command() {
   local revision="${1:-master}"
   local persistent_mode="${2:-false}"
+  local run_status=0
 
   if ! check_dependencies; then
     return 1
   fi
 
-  if ! download_archbox; then
+  if ! acquire_vm_lock; then
     return 1
   fi
-  run_vm "$revision" "$persistent_mode"
+
+  if ! download_archbox; then
+    release_vm_lock
+    return 1
+  fi
+
+  run_vm "$revision" "$persistent_mode" || run_status=$?
+  release_vm_lock
+  return "$run_status"
 }
 
 function run_interactive_menu() {
@@ -1199,14 +1228,7 @@ while [ $# -gt 0 ]; do
 done
 
 run_vm_command_direct() {
-    if ! check_dependencies; then
-        return 1
-  fi
-
-    if ! download_archbox; then
-        return 1
-  fi
-    run_vm "$ref" "$persistent"
+    run_vm_command "$ref" "$persistent"
 }
 
 run_vm_command_direct

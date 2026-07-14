@@ -25,6 +25,8 @@ installer pipeline.
   local-working-tree execution path.
 - **Cache**: use `$XDG_CACHE_HOME/ravnvm/`, preserving `archbase.qcow2` when
   cleaning snapshots and temporary VM data.
+- **Single VM session**: reject a second VM launch while another RavnVM process
+  owns the session lock; keep read-only commands and SSH access available.
 - **Make interface**: `make/dev.mk` is an alternative interaction surface over
   the same RavnVM engine. Do not duplicate VM execution logic there.
 - **Visual language**: preserve the shared numbered-menu convention: green
@@ -73,6 +75,7 @@ Scripts/ravnvm/tests/interrupt.sh
 Scripts/ravnvm/tests/snapshot.sh
 Scripts/ravnvm/tests/download.sh
 Scripts/ravnvm/tests/ssh.sh
+Scripts/ravnvm/tests/session.sh
 ```
 
 Also run `bash -n`, `shellcheck`, `shfmt`, and the repository pre-commit hook.
