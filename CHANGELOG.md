@@ -10,6 +10,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Added
 
+- Replace deprecated HyDeVM with RavnVM ([#33](https://github.com/robert-flo/Valhalla/pull/33)). <!-- changelog-pr:33 -->
+
 - Integrate RaVN packages into core installation ([#4](https://github.com/robert-flo/Valhalla/pull/4)). <!-- changelog-pr:4 -->
 - Add the RaVN dotfiles management workflow ([#6](https://github.com/robert-flo/Valhalla/pull/6)). <!-- changelog-pr:6 -->
 - Add the RaVN Git environment setup assistant ([#8](https://github.com/robert-flo/Valhalla/pull/8)). <!-- changelog-pr:8 -->

@@ -95,7 +95,18 @@ fi
 awk -v marker="$marker" '
   /^## Unreleased$/ { in_unreleased = 1 }
   /^## / && $0 != "## Unreleased" { in_unreleased = 0 }
-  !in_unreleased || index($0, marker) == 0 { print }
+  in_unreleased && index($0, marker) != 0 {
+    skip_following_blank = 1
+    next
+  }
+  skip_following_blank && $0 == "" {
+    skip_following_blank = 0
+    next
+  }
+  {
+    skip_following_blank = 0
+    print
+  }
 ' "$changelog_file" > "$temporary_file"
 mv "$temporary_file" "$changelog_file"
 

@@ -170,12 +170,12 @@ For more details, you can refer to [Hyde-cli - dots management wiki](https://git
   <a href="#-design-by-t2"><kbd> <br> 🡅 <br> </kbd></a>
 </div>
 
-<a id="hydevm"></a>
-<img src="https://readme-typing-svg.herokuapp.com?font=Lexend+Giga&size=25&pause=1000&color=CCA9DD&vCenter=true&width=435&height=25&lines=HYDEVM" width="450"/>
+<a id="ravnvm"></a>
+<img src="https://readme-typing-svg.herokuapp.com?font=Lexend+Giga&size=25&pause=1000&color=CCA9DD&vCenter=true&width=435&height=25&lines=RAVNVM" width="450"/>
 
 ---
 
-HyDEVM is a script that allows you to run HyDE in a virtual machine for testing and development.
+RavnVM runs RaVN branches and commits in an isolated virtual machine for testing and development.
 
 ## Quick Start
 
@@ -183,22 +183,22 @@ HyDEVM is a script that allows you to run HyDE in a virtual machine for testing 
 
 ```bash
 # Download and run (will auto-detect missing packages)
-curl -L https://raw.githubusercontent.com/HyDE-Project/HyDE/main/Scripts/hydevm/hydevm.sh -o hydevm
-chmod +x hydevm
-./hydevm
+curl -L https://raw.githubusercontent.com/robert-flo/Valhalla/master/Scripts/ravnvm/ravnvm.sh -o ravnvm
+chmod +x ravnvm
+./ravnvm
 ```
 
 ### NixOS (or Nix)
 
 ```bash
-# Using flakes from HyDE repository
-nix run github:HyDE-Project/HyDE
+# Using the Valhalla flake
+nix run github:robert-flo/Valhalla
 
 # Or if you have the repository cloned locally
 nix run .
 ```
 
-For more details, please refer to the [HyDEVM README](Scripts/hydevm/README.md).
+For more details, please refer to the [RavnVM README](Scripts/ravnvm/README.md).
 
 <div align="right">
   <br>
