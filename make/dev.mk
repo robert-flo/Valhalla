@@ -1,16 +1,23 @@
 RAVNVM ?= $(SCRIPTS_DIR)/ravnvm/ravnvm.sh
-REF ?= $(shell git branch --show-current 2>/dev/null || printf 'master')
+GIT ?= git
+REF ?= $(shell ref=$$($(GIT) branch --show-current 2>/dev/null); \
+	if [ -n "$$ref" ]; then printf '%s' "$$ref"; \
+	else $(GIT) rev-parse HEAD 2>/dev/null || printf 'master'; fi)
 VM_MEMORY ?= 4G
 VM_CPUS ?= 2
 VM_EXTRA_ARGS ?=
 VM_QEMU_OVERRIDE ?=
 DRY_RUN ?= 0
 
-.PHONY: help dev-vm dev-vm-persist dev-vm-list dev-vm-clean dev-vm-setup dev-vm-size dev-vm-ssh
+RAVNVM_TARGETS := dev-vm dev-vm-persist dev-vm-list dev-vm-clean dev-vm-setup \
+	dev-vm-storage dev-vm-size dev-vm-ssh
+
+.PHONY: help $(RAVNVM_TARGETS)
 
 define run-ravnvm
 	@if [ "$(DRY_RUN)" = "1" ]; then \
-		printf '  ▶ [dry-run] %s%s\n' '$(RAVNVM)' ' $(1)'; \
+		printf "  ▶ [dry-run] VM_MEMORY='%s' VM_CPUS='%s' VM_EXTRA_ARGS='%s' VM_QEMU_OVERRIDE='%s' %s%s\n" \
+			'$(VM_MEMORY)' '$(VM_CPUS)' '$(VM_EXTRA_ARGS)' '$(VM_QEMU_OVERRIDE)' '$(RAVNVM)' ' $(1)'; \
 	else \
 		VM_MEMORY='$(VM_MEMORY)' VM_CPUS='$(VM_CPUS)' \
 			VM_EXTRA_ARGS='$(VM_EXTRA_ARGS)' VM_QEMU_OVERRIDE='$(VM_QEMU_OVERRIDE)' \
@@ -25,7 +32,8 @@ help: ## Show the RavnVM development targets
 	@printf '  make dev-vm-list        List cached snapshots\n'
 	@printf '  make dev-vm-clean       Clean snapshots and temporary cache data\n'
 	@printf '  make dev-vm-setup       Check or install VM dependencies\n'
-	@printf '  make dev-vm-size        Show RavnVM storage usage\n'
+	@printf '  make dev-vm-storage     Show RavnVM storage usage\n'
+	@printf '  make dev-vm-size        Alias for dev-vm-storage\n'
 	@printf '  make dev-vm-ssh         Connect to the running VM via SSH\n'
 	@printf '\nSet DRY_RUN=1 to print commands without executing RavnVM.\n'
 
@@ -41,8 +49,10 @@ dev-vm-list: ## List cached snapshots
 dev-vm-clean: ## Clean snapshots and temporary cache data
 	$(call run-ravnvm,--clean)
 
-dev-vm-size: ## Show RavnVM storage usage
+dev-vm-storage: ## Show RavnVM storage usage
 	$(call run-ravnvm,--storage)
+
+dev-vm-size: dev-vm-storage ## Compatibility alias for storage usage
 
 dev-vm-ssh: ## Connect to the running VM via SSH
 	$(call run-ravnvm,--ssh)

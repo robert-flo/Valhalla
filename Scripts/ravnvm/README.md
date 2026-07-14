@@ -176,7 +176,8 @@ make dev-vm VM_EXTRA_ARGS=-nographic VM_QEMU_OVERRIDE=custom-qemu
 make dev-vm-list
 make dev-vm-clean
 make dev-vm-setup
-make dev-vm-size
+make dev-vm-storage
+make dev-vm-size # Compatibility alias for dev-vm-storage
 make dev-vm-ssh
 
 # Preview commands without starting or modifying a VM
