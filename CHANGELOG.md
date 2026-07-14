@@ -15,6 +15,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Added
 
+- docs: record top-why utility ([#57](https://github.com/robert-flo/Valhalla/pull/57)). <!-- changelog-pr:57 -->
+
 - chore: add libhandy for Meld ([#51](https://github.com/robert-flo/Valhalla/pull/51)). <!-- changelog-pr:51 -->
 
 - feat: support external repositories in RavnVM ([#50](https://github.com/robert-flo/Valhalla/pull/50)). <!-- changelog-pr:50 -->
