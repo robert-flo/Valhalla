@@ -81,7 +81,7 @@ diff_output=$(PATH="$FAKE_BIN:$PATH" make -s -C "$REPO_DIR/topic" -f "$ROOT_DIR/
 assert_contains "$diff_output" 'compare current worktree against master'
 
 git --git-dir="$BARE_DIR" branch merged master
-make -s -C "$REPO_DIR/topic" -f "$ROOT_DIR/make/git.mk" git-prune-branches > /dev/null
+printf 'y\n' | make -s -C "$REPO_DIR/topic" -f "$ROOT_DIR/make/git.mk" git-clean > /dev/null
 git --git-dir="$BARE_DIR" show-ref --verify --quiet refs/heads/merged && fail 'merged inactive branch was not deleted'
 git --git-dir="$BARE_DIR" show-ref --verify --quiet refs/heads/master || fail 'active master worktree branch was deleted'
 git --git-dir="$BARE_DIR" show-ref --verify --quiet refs/heads/topic || fail 'active topic worktree branch was deleted'

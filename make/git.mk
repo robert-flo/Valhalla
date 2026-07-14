@@ -19,7 +19,7 @@
 #    lg / git-lg    git-log                  Show commit log history
 #    af / git-af    git-add-fuzzy            Interactively stage (fzf)
 #    fuck/git-fuck  git-amend                Amend last commit (MSG="...")
-#    bye / git-bye  git-prune-branches       Delete local merged branches
+#    clean          git-clean                Review and remove merged worktrees
 #    df / git-df    git-diff-fuzzy           Fuzzy select commit to diff
 #    fc / git-fc    git-search CODE="..."    Search history by code modification
 #    fm / git-fm    git-search MSG="..."     Search history by message query
@@ -30,7 +30,7 @@
 #    make git-push            DRY_RUN=1   · skip git push
 #    make git-pull            DRY_RUN=1   · skip git pull
 #    make git-amend           DRY_RUN=1   · skip git commit --amend
-#    make git-prune-branches  DRY_RUN=1   · skip git branch -d
+#    make git-clean            DRY_RUN=1   · preview cleanup without removing
 #    (git-status, git-diff, git-log, git-add-fuzzy, git-diff-fuzzy, git-search are read-only)
 
 DRY_RUN ?= 0
@@ -55,7 +55,7 @@ BASE_BRANCH ?= master
 PROTECTED_BRANCHES ?= master dev rc imgbot
 
 .PHONY: help-git git-add git-commit git-cm git-add-commit git-push git-pull git-status git-diff git-log git-setup git-sync git-diff-dev git-diff-rc git-diff-here \
-        git-add-fuzzy git-amend git-prune-branches git-diff-fuzzy git-search
+        git-add-fuzzy git-amend git-clean git-prune-branches git-diff-fuzzy git-search
 
 # ═══════════════════════════════════════════════════════════════
 # 🔀 HELP-GIT - Show Git operations
@@ -75,7 +75,7 @@ help-git: ## Show Git operation targets
 	@printf "  make git-log              Show recent history\n"
 	@printf "  make git-add-fuzzy        Select files to stage\n"
 	@printf "  make git-amend            Amend the last commit\n"
-	@printf "  make git-prune-branches   Delete inactive merged branches\n"
+	@printf "  make git-clean             Review and remove merged worktrees/branches\n"
 	@printf "  make git-diff-fuzzy       Select a commit to inspect\n"
 	@printf "  make git-search           Search history by CODE or MSG\n"
 	@printf "  make git-setup            Create a bare clone and worktrees\n"
@@ -204,10 +204,10 @@ ifndef EMBEDDED
 	@printf "$(CYAN)────────────────────────────────────────────────────────────────────────────────$(NC)\n"
 endif
 	@BRANCH=$$(git branch --show-current); \
-	REMOTE=$$(git remote get-url origin 2>/dev/null | sed -E 's|.*github.com[:/]([^/]+/[^/]+)(\.git)?$$|\1|' | sed 's|\.git$$||'); \
+	REMOTE=$$(git remote get-url $(GIT_REMOTE) 2>/dev/null | sed -E 's|.*github.com[:/]([^/]+/[^/]+)(\.git)?$$|\1|' | sed 's|\.git$$||'); \
 	printf "  $(DIM)branch:$(NC) $$BRANCH  $(DIM)remote:$(NC) $$REMOTE\n"; \
-	if git rev-parse --verify --quiet refs/remotes/origin/$$BRANCH >/dev/null 2>&1; then \
-		UNPUSHED=$$(git log origin/$$BRANCH..HEAD --oneline 2>/dev/null | wc -l); \
+	if git rev-parse --verify --quiet refs/remotes/$(GIT_REMOTE)/$$BRANCH >/dev/null 2>&1; then \
+		UNPUSHED=$$(git log $(GIT_REMOTE)/$$BRANCH..HEAD --oneline 2>/dev/null | wc -l); \
 		if [ $$UNPUSHED -gt 0 ]; then \
 			printf "\n  pushing $$UNPUSHED commit(s)...\n"; \
 			$(EXEC) git push || exit 1; \
@@ -217,7 +217,7 @@ endif
 		fi; \
 	else \
 		printf "\n  pushing new branch $$BRANCH to remote...\n"; \
-		$(EXEC) git push --set-upstream origin "$$BRANCH" || exit 1; \
+		$(EXEC) git push --set-upstream $(GIT_REMOTE) "$$BRANCH" || exit 1; \
 		printf "$(GREEN)  ✓ pushed to remote$(NC)\n"; \
 	fi
 ifndef EMBEDDED
@@ -240,15 +240,11 @@ ifndef EMBEDDED
 	@printf "$(CYAN)────────────────────────────────────────────────────────────────────────────────$(NC)\n"
 endif
 	@BRANCH=$$(git branch --show-current); \
-	REMOTE=$$(git remote get-url origin 2>/dev/null | sed -E 's|.*github.com[:/]([^/]+/[^/]+)(\.git)?$$|\1|' | sed 's|\.git$$||'); \
+	REMOTE=$$(git remote get-url $(GIT_REMOTE) 2>/dev/null | sed -E 's|.*github.com[:/]([^/]+/[^/]+)(\.git)?$$|\1|' | sed 's|\.git$$||'); \
 	printf "  $(DIM)branch:$(NC) $$BRANCH  $(DIM)remote:$(NC) $$REMOTE\n\n"; \
-	if [ "$$DRY_RUN" = "1" ]; then \
-		printf "  ▶ [dry-run] git pull\n"; \
-	else \
-		printf "  pulling changes from remote...\n\n"; \
-		git pull || exit 1; \
-		printf "\n$(GREEN)  ✓ pulled from remote$(NC)\n"; \
-	fi
+	printf "  pulling changes from remote...\n\n"; \
+	$(EXEC) git pull $(GIT_REMOTE) "$$BRANCH" || exit 1; \
+	if [ "$$DRY_RUN" != "1" ]; then printf "\n$(GREEN)  ✓ pulled from remote$(NC)\n"; fi
 ifndef EMBEDDED
 	@printf "\n$(GREEN)  ✓ done$(NC)\n"
 	@printf "\n$(YELLOW)📋 Quick Actions:$(NC)\n"
@@ -269,7 +265,7 @@ ifndef EMBEDDED
 	@printf "$(CYAN)────────────────────────────────────────────────────────────────────────────────$(NC)\n"
 endif
 	@if git rev-parse --git-dir > /dev/null 2>&1; then \
-		REMOTE_URL=$$(git remote get-url origin 2>/dev/null); \
+		REMOTE_URL=$$(git remote get-url $(GIT_REMOTE) 2>/dev/null); \
 		REPO_NAME=$$(echo "$$REMOTE_URL" | sed -E 's|.*github.com[:/]([^/]+/[^/]+)(\.git)?$$|\1|' | sed 's|\.git$$||'); \
 		BRANCH=$$(git branch --show-current); \
 		AHEAD=$$(git rev-list --count @{u}..HEAD 2>/dev/null || echo 0); \
@@ -662,43 +658,63 @@ ifndef EMBEDDED
 endif
 
 # ═══════════════════════════════════════════════════════════════
-# 🗑️  GIT-PRUNE-BRANCHES - Delete all local merged branches
+# 🧹 GIT-CLEAN - Review and optionally remove merged worktrees
 # ═══════════════════════════════════════════════════════════════
-# ──── Prune: Removes merged branches not used by worktrees ────
-git-prune-branches: ## Delete all local merged branches
+# ──── Clean: report first, then ask before removing safe candidates ──
+git-clean: ## Review and remove merged worktrees and branches
 ifndef EMBEDDED
 	@printf "\n"
-	@printf "$(CYAN)🗑️  git-prune-branches · remove merged branches$(NC)\n"
+	@printf "$(CYAN)🧹 git-clean · merged worktrees and branches$(NC)\n"
 	@printf "$(CYAN)────────────────────────────────────────────────────────────────────────────────$(NC)\n"
 endif
-	@MERGED=$$(git for-each-ref --merged HEAD --format='%(refname:short)' refs/heads); \
-	ACTIVE=$$(git worktree list --porcelain | sed -n 's|^branch refs/heads/||p'); \
-	TO_DELETE=""; \
-	for branch in $$MERGED; do \
+	@BASE=$$(git rev-parse --verify "$(BASE_BRANCH)" 2>/dev/null) || { printf "$(RED)  ✗ base branch not found: $(BASE_BRANCH)$(NC)\n"; exit 1; }; \
+	TMP=$$(mktemp); trap 'rm -f "$$TMP"' EXIT; \
+	printf "  $(DIM)base branch:$(NC) $(BASE_BRANCH)\n\n"; \
+	printf "$(YELLOW)[1] Merged worktrees$(NC)\n"; \
+	git worktree list --porcelain | awk '/^worktree /{path=$$2} /^branch refs\/heads\//{branch=$$2; sub("refs/heads/", "", branch); print branch "\t" path}' | \
+	while IFS="	" read -r branch path; do \
 		if printf '%s\n' $(PROTECTED_BRANCHES) | grep -Fxq "$$branch"; then continue; fi; \
-		if printf '%s\n' "$$ACTIVE" | grep -Fxq "$$branch"; then continue; fi; \
-		TO_DELETE="$$TO_DELETE $$branch"; \
-	done; \
-	TO_DELETE=$$(printf '%s' "$$TO_DELETE" | xargs); \
-	if [ -n "$$TO_DELETE" ]; then \
-		printf "  branches to delete:\n"; \
-		printf '  %s\n' $$TO_DELETE; \
-		printf "\n"; \
-		if [ "$$DRY_RUN" = "1" ]; then \
-			printf "  ▶ [dry-run] git branch -d $$TO_DELETE\n"; \
-		else \
-			printf '%s\n' $$TO_DELETE | xargs -n 1 git branch -d; \
-			printf "$(GREEN)  ✓ merged branches deleted$(NC)\n"; \
+		if git merge-base --is-ancestor "refs/heads/$$branch" "$$BASE"; then \
+			if [ -n "$$(git -C "$$path" status --porcelain 2>/dev/null)" ]; then \
+				printf "  $(RED)⚠ $$branch$(NC)  $$path  $(YELLOW)(modified; skipped)$(NC)\n"; \
+			else \
+				printf "  $(GREEN)✓ $$branch$(NC)  $$path  $(DIM)(clean; candidate)$(NC)\n"; \
+				printf 'worktree\t%s\t%s\n' "$$branch" "$$path" >> "$$TMP"; \
+			fi; \
 		fi; \
+	done; \
+	printf "\n$(YELLOW)[2] Merged branches without worktrees$(NC)\n"; \
+	ACTIVE=$$(git worktree list --porcelain | sed -n 's|^branch refs/heads/||p'); \
+	git for-each-ref --merged "$$BASE" --format='%(refname:short)' refs/heads | \
+	while IFS= read -r branch; do \
+		if printf '%s\n' $(PROTECTED_BRANCHES) | grep -Fxq "$$branch" || printf '%s\n' "$$ACTIVE" | grep -Fxq "$$branch"; then continue; fi; \
+		printf "  $(GREEN)✓ $$branch$(NC)  $(DIM)(branch only; candidate)$(NC)\n"; \
+		printf 'branch\t%s\n' "$$branch" >> "$$TMP"; \
+	done; \
+	printf "\n$(YELLOW)[3] Protected branches$(NC)\n"; \
+	printf "  $(DIM)%s$(NC)\n" "$(PROTECTED_BRANCHES)"; \
+	COUNT=$$(wc -l < "$$TMP" | tr -d ' '); \
+	if [ "$$COUNT" -eq 0 ]; then \
+		printf "\n$(GREEN)  ✓ no safe cleanup candidates$(NC)\n"; \
+	elif [ "$(DRY_RUN)" = "1" ]; then \
+		printf "\n  ▶ [dry-run] $$COUNT candidate(s) reported; no changes made\n"; \
 	else \
-		printf "$(GREEN)  ✓ no merged branches to delete$(NC)\n"; \
+		printf "\n  Remove $$COUNT clean merged candidate(s)? [y/N] "; read -r answer; \
+		case "$$answer" in y|Y|yes|YES) \
+			while IFS="	" read -r kind branch path; do \
+				if [ "$$kind" = "worktree" ]; then git worktree remove "$$path" && git branch -d "$$branch"; else git branch -d "$$branch"; fi; \
+			done < "$$TMP"; \
+			printf "$(GREEN)  ✓ cleanup completed$(NC)\n" ;; \
+		*) printf "  cleanup cancelled; no changes made\n" ;; esac; \
 	fi
 ifndef EMBEDDED
 	@printf "\n$(GREEN)  ✓ done$(NC)\n"
 	@printf "\n$(YELLOW)📋 Quick Actions:$(NC)\n"
 	@printf "$(DIM)────────────────────────────────────────────────────────────────────────────────$(NC)\n"
-	@printf "  • check repository state: $(BLUE)make git-status$(NC)\n\n"
+	@printf "  • review again: $(BLUE)make git-clean$(NC)\n\n"
 endif
+
+git-prune-branches: git-clean
 
 # ═══════════════════════════════════════════════════════════════
 # 🔍 GIT-DIFF-FUZZY - Fuzzy select a past commit to diff

@@ -24,7 +24,7 @@
 #    make dev-vm-setup              DRY_RUN=1   · skip dependency changes
 #    make dev-vm-ssh                DRY_RUN=1   · skip the SSH connection
 #    make dev-vm-install-ssh-alias  DRY_RUN=1   · skip SSH alias installation
-#    (help is read-only; list and storage targets are also previewed in dry-run)
+#    (help, list and storage targets are read-only and always execute)
 
 RAVNVM ?= $(SCRIPTS_DIR)/ravnvm/ravnvm.sh
 GIT ?= git
@@ -40,20 +40,134 @@ DRY_RUN ?= 0
 RAVNVM_TARGETS := dev-vm dev-vm-persist dev-vm-list dev-vm-clean dev-vm-setup \
 	dev-vm-storage dev-vm-size dev-vm-ssh dev-vm-install-ssh-alias
 
-.PHONY: help $(RAVNVM_TARGETS)
+.PHONY: help-ravnvm $(RAVNVM_TARGETS)
+
+define check-ravnvm
+	if case '$(RAVNVM)' in */*) [ -x '$(RAVNVM)' ];; *) command -v '$(RAVNVM)' >/dev/null 2>&1;; esac; then \
+		:; \
+	else \
+		printf "$(RED)  ✗ RavnVM executable not found or not executable:$(NC) %s\n" '$(RAVNVM)' >&2; \
+		printf "  set RAVNVM=/path/to/ravnvm.sh or define SCRIPTS_DIR correctly\n" >&2; \
+		printf "  expected default: %s/ravnvm/ravnvm.sh\n" '$(SCRIPTS_DIR)' >&2; \
+		exit 127; \
+	fi
+endef
 
 define run-ravnvm
 	@if [ "$(DRY_RUN)" = "1" ]; then \
 		printf "  ▶ [dry-run] VM_MEMORY='%s' VM_CPUS='%s' VM_EXTRA_ARGS='%s' VM_QEMU_OVERRIDE='%s' %s%s\n" \
 			'$(VM_MEMORY)' '$(VM_CPUS)' '$(value VM_EXTRA_ARGS)' '$(value VM_QEMU_OVERRIDE)' '$(RAVNVM)' ' $(1)'; \
+		printf "$(GREEN)  ✓ dry-run complete$(NC)\n"; \
 	else \
-		VM_MEMORY='$(VM_MEMORY)' VM_CPUS='$(VM_CPUS)' \
-			VM_EXTRA_ARGS='$(value VM_EXTRA_ARGS)' VM_QEMU_OVERRIDE='$(value VM_QEMU_OVERRIDE)' \
-			'$(RAVNVM)' $(1); \
-	fi
+		$(check-ravnvm); \
+		if VM_MEMORY='$(VM_MEMORY)' VM_CPUS='$(VM_CPUS)' \
+		VM_EXTRA_ARGS='$(value VM_EXTRA_ARGS)' VM_QEMU_OVERRIDE='$(value VM_QEMU_OVERRIDE)' \
+		'$(RAVNVM)' $(1); then \
+			printf "$(GREEN)  ✓ RavnVM operation completed$(NC)\n"; \
+		else \
+			status=$$?; \
+			printf "$(RED)  ✗ RavnVM operation failed (exit $$status)$(NC)\n" >&2; \
+			exit $$status; \
+		fi; \
+	fi; \
+	printf "\n$(YELLOW)📋 Quick Actions:$(NC)\n"; \
+	printf "$(DIM)────────────────────────────────────────────────────────────────────────────────$(NC)\n"; \
+	printf "  • inspect repository: $(BLUE)make git-status$(NC)\n"; \
+	printf "  • list cached snapshots: $(BLUE)make dev-vm-list$(NC)\n"; \
+	printf "  • check VM dependencies: $(BLUE)make dev-vm-setup$(NC)\n\n"
 endef
 
-help: ## Show the RavnVM development targets
+define run-ravnvm-readonly
+	@$(check-ravnvm); \
+	if VM_MEMORY='$(VM_MEMORY)' VM_CPUS='$(VM_CPUS)' \
+		VM_EXTRA_ARGS='$(value VM_EXTRA_ARGS)' VM_QEMU_OVERRIDE='$(value VM_QEMU_OVERRIDE)' \
+		'$(RAVNVM)' $(1); then \
+		printf "$(GREEN)  ✓ RavnVM query completed$(NC)\n"; \
+	else \
+		status=$$?; \
+		printf "$(RED)  ✗ RavnVM query failed (exit $$status)$(NC)\n" >&2; \
+		exit $$status; \
+	fi; \
+	printf "\n$(YELLOW)📋 Quick Actions:$(NC)\n"; \
+	printf "$(DIM)────────────────────────────────────────────────────────────────────────────────$(NC)\n"; \
+	printf "  • run an ephemeral VM: $(BLUE)make dev-vm$(NC)\n"; \
+	printf "  • clean snapshots:    $(BLUE)make dev-vm-clean$(NC)\n"; \
+	printf "  • check dependencies:  $(BLUE)make dev-vm-setup$(NC)\n\n"
+endef
+
+define run-ravnvm-clean
+	@$(check-ravnvm); \
+	CACHE_DIR="$${XDG_CACHE_HOME:-$$HOME/.cache}/ravnvm"; \
+	TMP=$$(mktemp); trap 'rm -f "$$TMP"' EXIT; \
+	if [ -d "$$CACHE_DIR" ]; then \
+		find "$$CACHE_DIR" -mindepth 1 -maxdepth 1 ! -name archbase.qcow2 ! -name session.lock -print > "$$TMP"; \
+	fi; \
+	printf "$(YELLOW)  cache cleanup preview:$(NC) $$CACHE_DIR\n"; \
+	if [ -s "$$TMP" ]; then \
+		while IFS= read -r item; do \
+			printf "  $(RED)-$(NC) %s  $(DIM)(%s)$(NC)\n" "$$item" "$$(du -sh "$$item" 2>/dev/null | awk '{print $$1}' || printf '?')"; \
+		done < "$$TMP"; \
+		TOTAL=$$(du -ch $$(cat "$$TMP") 2>/dev/null | tail -n 1 | awk '{print $$1}'); \
+		printf "  $(DIM)total: %s$(NC)\n" "$$TOTAL"; \
+	else \
+		printf "  $(GREEN)✓ nothing to clean$(NC)\n"; \
+	fi; \
+	if [ "$(DRY_RUN)" = "1" ]; then \
+		printf "  ▶ [dry-run] cache cleanup skipped\n"; \
+	else \
+		printf "\n  Remove the listed cache data? [y/N] "; read -r answer; \
+		case "$$answer" in y|Y|yes|YES) \
+			if VM_MEMORY='$(VM_MEMORY)' VM_CPUS='$(VM_CPUS)' \
+				VM_EXTRA_ARGS='$(value VM_EXTRA_ARGS)' VM_QEMU_OVERRIDE='$(value VM_QEMU_OVERRIDE)' \
+				'$(RAVNVM)' --clean; then \
+				printf "$(GREEN)  ✓ RavnVM cache cleaned$(NC)\n"; \
+			else \
+				status=$$?; printf "$(RED)  ✗ RavnVM cache cleanup failed (exit $$status)$(NC)\n" >&2; exit $$status; \
+			fi ;; \
+		*) printf "  cleanup cancelled; no changes made\n" ;; esac; \
+	fi; \
+	printf "\n$(YELLOW)📋 Quick Actions:$(NC)\n"; \
+	printf "$(DIM)────────────────────────────────────────────────────────────────────────────────$(NC)\n"; \
+	printf "  • list snapshots: $(BLUE)make dev-vm-list$(NC)\n"; \
+	printf "  • inspect storage: $(BLUE)make dev-vm-storage$(NC)\n"; \
+	printf "  • run an ephemeral VM: $(BLUE)make dev-vm$(NC)\n\n"
+endef
+
+define run-ravnvm-setup
+	@if [ "$(DRY_RUN)" = "1" ]; then \
+		printf '  ▶ [dry-run] %s --check-deps\n' '$(RAVNVM)'; \
+		printf '  ▶ [dry-run] %s --install-deps\n' '$(RAVNVM)'; \
+		printf "$(GREEN)  ✓ dry-run complete$(NC)\n"; \
+	else \
+		$(check-ravnvm); \
+		if '$(RAVNVM)' --check-deps; then \
+			printf "$(GREEN)  ✓ VM dependencies are ready$(NC)\n"; \
+		else \
+			printf "  dependencies missing; attempting installation...\n"; \
+			if '$(RAVNVM)' --install-deps; then \
+				printf "  verifying installed dependencies...\n"; \
+				if '$(RAVNVM)' --check-deps; then \
+					printf "$(GREEN)  ✓ VM dependencies installed and verified$(NC)\n"; \
+				else \
+					printf "$(RED)  ✗ dependency installation completed but verification failed$(NC)\n" >&2; \
+					exit 1; \
+				fi; \
+			else \
+				status=$$?; \
+				printf "$(RED)  ✗ VM dependency setup failed (exit $$status)$(NC)\n" >&2; \
+				exit $$status; \
+			fi; \
+		fi; \
+	fi; \
+	printf "\n$(YELLOW)📋 Quick Actions:$(NC)\n"; \
+	printf "$(DIM)────────────────────────────────────────────────────────────────────────────────$(NC)\n"; \
+	printf "  • run an ephemeral VM: $(BLUE)make dev-vm$(NC)\n"; \
+	printf "  • inspect VM storage:  $(BLUE)make dev-vm-storage$(NC)\n"; \
+	printf "  • list cached snapshots: $(BLUE)make dev-vm-list$(NC)\n\n"
+
+endef
+
+help-ravnvm: ## Show the RavnVM development targets
 	@printf '$(CYAN)RavnVM development targets$(NC)\n'
 	@printf '  make dev-vm             Run an ephemeral VM (REF, VM_MEMORY, VM_CPUS)\n'
 	@printf '  make dev-vm-persist     Run a persistent VM\n'
@@ -73,13 +187,13 @@ dev-vm-persist: ## Run a persistent VM
 	$(call run-ravnvm,--persist $(REF))
 
 dev-vm-list: ## List cached snapshots
-	$(call run-ravnvm,--list)
+	$(call run-ravnvm-readonly,--list)
 
 dev-vm-clean: ## Clean snapshots and temporary cache data
-	$(call run-ravnvm,--clean)
+	$(call run-ravnvm-clean)
 
 dev-vm-storage: ## Show RavnVM storage usage
-	$(call run-ravnvm,--storage)
+	$(call run-ravnvm-readonly,--storage)
 
 dev-vm-size: dev-vm-storage ## Compatibility alias for storage usage
 
@@ -90,9 +204,4 @@ dev-vm-install-ssh-alias: ## Install the ssh ravnvm host alias
 	$(call run-ravnvm,--install-ssh-alias)
 
 dev-vm-setup: ## Check or install VM dependencies
-	@if [ "$(DRY_RUN)" = "1" ]; then \
-		printf '  ▶ [dry-run] %s --check-deps\n' '$(RAVNVM)'; \
-		printf '  ▶ [dry-run] %s --install-deps\n' '$(RAVNVM)'; \
-	elif ! '$(RAVNVM)' --check-deps; then \
-		'$(RAVNVM)' --install-deps; \
-	fi
+	$(run-ravnvm-setup)

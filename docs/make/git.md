@@ -25,7 +25,7 @@ before committing when unrelated work may be present.
 `origin/<branch>` as the upstream; later pushes use that tracking relationship.
 `git-pull` updates the current branch from its configured upstream.
 
-Set `DRY_RUN=1` to preview `git-add`, commit, push, pull, amend, setup, and prune
+Set `DRY_RUN=1` to preview `git-add`, commit, push, pull, amend, setup, and clean
 operations without performing their mutation.
 
 ## Inspection
@@ -52,8 +52,11 @@ Protected branches are skipped.
 `git-diff-dev` and `git-diff-rc` comparisons remain available for repositories
 that still use those branches.
 
-`git-prune-branches` deletes only branches already merged into the current
-history. Protected branches and branches active in any worktree are preserved.
+`git-clean` reports merged worktrees and branches in separate sections, then
+asks for confirmation before removing only clean, merged candidates. Protected
+branches and worktrees with local changes are preserved. `DRY_RUN=1` reports
+candidates without prompting or changing anything. `git-prune-branches` remains
+as a compatibility name for `git-clean`.
 
 ## Requirements
 
