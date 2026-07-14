@@ -612,7 +612,7 @@ SETUP_EOF
 
     echo ""
     echo "${ICON_VM}  Starting VM for RaVN installation..."
-    echo "📋 SETUP INSTRUCTIONS:"
+    echo "${ICON_INSTRUCTIONS} SETUP INSTRUCTIONS:"
     echo "   1. The VM will boot in the background."
     echo "   2. The setup script will be automatically copied to /home/arch/setup.sh via SSH (port ${SSH_PORT})."
     echo "   3. Once copied, login to the VM (arch/arch) or SSH into it: ssh arch@127.0.0.1 -p ${SSH_PORT} (or ssh ravnvm)"
@@ -625,7 +625,7 @@ SETUP_EOF
     run_qemu_vm "$temp_image" "${VM_MEMORY:-4G}" "${VM_CPUS:-2}" "hostfwd=tcp::${SSH_PORT}-:22" "background"
     local qemu_pid="$ACTIVE_QEMU_PID"
 
-    echo "⏳ Waiting for VM SSH server to be fully ready..."
+    echo "${ICON_WAITING} Waiting for VM SSH server to be fully ready..."
     if ! wait_for_guest_ssh "$qemu_pid"; then
         cleanup_runtime
         return 1
