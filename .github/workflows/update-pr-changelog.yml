@@ -1,4 +1,4 @@
-name: Update pull request changelog
+name: Validate pull request changelog
 
 on:
   pull_request_target:
@@ -14,23 +14,19 @@ on:
       - synchronize
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: read
 
 concurrency:
   group: pr-changelog-${{ github.event.pull_request.number }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
-  update:
-    name: Update source branch changelog
-    if: >-
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref != 'master' &&
-      github.actor != 'github-actions[bot]'
+  validate:
+    name: Validate committed changelog
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout trusted automation from the base branch
+      - name: Checkout trusted validation from the base branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.sha }}
@@ -42,7 +38,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           path: source
-          fetch-depth: 0
           persist-credentials: false
 
       - name: Read pull request labels
@@ -53,33 +48,11 @@ jobs:
             echo EOF
           } >> "$GITHUB_ENV"
 
-      - name: Generate changelog entry
+      - name: Validate committed changelog
         env:
           CHANGELOG_FILE: source/CHANGELOG.md
+          CHANGELOG_FAILURE_GUIDANCE: Generate the changelog locally and commit the result before requesting review.
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           PR_TITLE: ${{ github.event.pull_request.title }}
-        run: automation/.github/scripts/update-pr-changelog.sh
-
-      - name: Commit changelog update to source branch
-        env:
-          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          GITHUB_TOKEN: ${{ github.token }}
-        working-directory: source
-        run: |
-          if git diff --quiet -- CHANGELOG.md; then
-            echo 'Changelog already reflects this pull request.'
-            exit 0
-          fi
-
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git add CHANGELOG.md
-          git commit -m "chore(changelog): update PR #${PR_NUMBER}"
-
-          if ! git push origin "HEAD:${PR_BRANCH}"; then
-            echo '::error title=Changelog source-branch push failed::Check branch protection, a concurrent update, or GitHub Actions contents: write permission.'
-            exit 1
-          fi
+        run: automation/.github/scripts/validate-pr-changelog.sh

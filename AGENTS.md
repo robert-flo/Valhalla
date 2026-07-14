@@ -15,6 +15,16 @@ Single-context — un `CONTEXT.md` + `docs/adr/` en la raíz. See `docs/agents/d
 - Después de un rebase, actualizar la rama remota únicamente con `git push --force-with-lease`.
 - Si una rama automatizada no puede rebasarse de forma segura, recrearla desde `origin/master` antes de fusionarla.
 
+### Changelog de pull requests
+
+- Seleccionar una única etiqueta `changelog:<categoría>` o `changelog:skip`.
+- Generar la entrada localmente con `.github/scripts/update-pr-changelog.sh`,
+  proporcionando `PR_NUMBER`, `PR_URL`, `PR_TITLE` y `PR_LABELS`.
+- Revisar el resultado, ejecutar el generador una segunda vez para comprobar
+  idempotencia y ejecutar `tests/changelog-automation.sh`.
+- Confirmar `CHANGELOG.md` con `chore(changelog): update PR #<número>` antes de
+  solicitar revisión. CI únicamente valida el resultado y nunca escribe en la rama.
+
 ### Cambios personales RaVN
 
 `Scripts/restore_cfg.psv` contiene configuraciones upstream y configuraciones

@@ -23,7 +23,7 @@ if [[ ! -f $changelog_file ]]; then
   exit 2
 fi
 
-category='Changed'
+category=''
 skip_entry=false
 category_labels=()
 
@@ -60,6 +60,11 @@ fi
 
 if ((${#category_labels[@]} > 1)); then
   echo 'Only one changelog category label may be applied.' >&2
+  exit 2
+fi
+
+if [[ $skip_entry == false ]] && ((${#category_labels[@]} == 0)); then
+  echo 'Exactly one changelog category label or changelog:skip is required.' >&2
   exit 2
 fi
 
