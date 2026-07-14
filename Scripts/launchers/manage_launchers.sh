@@ -36,6 +36,8 @@ load_manifest() {
   while IFS='|' read -r flag destination artifact _owner || [[ -n $flag ]]; do
     [[ -z ${flag//[[:space:]]/} || $flag == \#* ]] && continue
     [[ $flag == P && -n $destination && -n $artifact ]] || continue
+    # Icons are installation inputs; only generated desktop entries are managed.
+    [[ $artifact == *.desktop ]] || continue
 
     destination="$(resolve_path "$destination")"
     resolved_path="$(realpath -m -- "$destination/$artifact")"
