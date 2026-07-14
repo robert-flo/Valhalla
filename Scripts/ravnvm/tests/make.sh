@@ -44,6 +44,12 @@ make -s -C "$ROOT_DIR" dev-vm RAVNVM="$FAKE_RAVNVM" REF=feature/test \
   VM_MEMORY=8G VM_CPUS=4 VM_EXTRA_ARGS=-nographic VM_QEMU_OVERRIDE=custom-qemu
 assert_contains "$(< "$CALL_LOG")" "memory=8G cpus=4 extra=-nographic qemu=custom-qemu args=feature/test"
 
+dollar='$'
+vm_disk_override="qemu -drive file=${dollar}VM_DISK"
+make -s -C "$ROOT_DIR" dev-vm RAVNVM="$FAKE_RAVNVM" REF=placeholder \
+  VM_QEMU_OVERRIDE="$vm_disk_override"
+assert_contains "$(< "$CALL_LOG")" "qemu=$vm_disk_override args=placeholder"
+
 make -s -C "$ROOT_DIR" dev-vm-persist RAVNVM="$FAKE_RAVNVM" REF=dev
 assert_contains "$(< "$CALL_LOG")" "args=--persist dev"
 
@@ -59,11 +65,11 @@ make -s -C "$ROOT_DIR" dev-vm RAVNVM="$FAKE_RAVNVM" GIT="$FAKE_GIT"
 assert_contains "$(< "$CALL_LOG")" "args=deadbeef"
 
 declare -A target_options=(
-    ["dev-vm-list"]=--list
-   ["dev-vm-clean"]=--clean
-   ["dev-vm-storage"]=--storage
-   ["dev-vm-size"]=--storage
-    ["dev-vm-ssh"]=--ssh
+     ["dev-vm-list"]=--list
+    ["dev-vm-clean"]=--clean
+    ["dev-vm-storage"]=--storage
+    ["dev-vm-size"]=--storage
+     ["dev-vm-ssh"]=--ssh
 )
 for target in "${!target_options[@]}"; do
   make -s -C "$ROOT_DIR" "$target" RAVNVM="$FAKE_RAVNVM"
@@ -77,12 +83,12 @@ assert_contains "$(< "$CALL_LOG")" "args=--install-deps"
 : > "$CALL_LOG"
 dry_run_output=$(make -s -C "$ROOT_DIR" dev-vm dev-vm-clean dev-vm-setup \
   RAVNVM="$FAKE_RAVNVM" REF=preview DRY_RUN=1 VM_MEMORY=8G VM_CPUS=4 \
-  VM_EXTRA_ARGS=-nographic VM_QEMU_OVERRIDE=custom-qemu)
+  VM_EXTRA_ARGS=-nographic VM_QEMU_OVERRIDE="$vm_disk_override")
 assert_contains "$dry_run_output" "$FAKE_RAVNVM preview"
 assert_contains "$dry_run_output" "VM_MEMORY='8G'"
 assert_contains "$dry_run_output" "VM_CPUS='4'"
 assert_contains "$dry_run_output" "VM_EXTRA_ARGS='-nographic'"
-assert_contains "$dry_run_output" "VM_QEMU_OVERRIDE='custom-qemu'"
+assert_contains "$dry_run_output" "VM_QEMU_OVERRIDE='$vm_disk_override'"
 assert_contains "$dry_run_output" "$FAKE_RAVNVM --clean"
 assert_contains "$dry_run_output" "$FAKE_RAVNVM --check-deps"
 assert_contains "$dry_run_output" "$FAKE_RAVNVM --install-deps"

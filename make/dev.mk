@@ -17,10 +17,10 @@ RAVNVM_TARGETS := dev-vm dev-vm-persist dev-vm-list dev-vm-clean dev-vm-setup \
 define run-ravnvm
 	@if [ "$(DRY_RUN)" = "1" ]; then \
 		printf "  ▶ [dry-run] VM_MEMORY='%s' VM_CPUS='%s' VM_EXTRA_ARGS='%s' VM_QEMU_OVERRIDE='%s' %s%s\n" \
-			'$(VM_MEMORY)' '$(VM_CPUS)' '$(VM_EXTRA_ARGS)' '$(VM_QEMU_OVERRIDE)' '$(RAVNVM)' ' $(1)'; \
+			'$(VM_MEMORY)' '$(VM_CPUS)' '$(value VM_EXTRA_ARGS)' '$(value VM_QEMU_OVERRIDE)' '$(RAVNVM)' ' $(1)'; \
 	else \
 		VM_MEMORY='$(VM_MEMORY)' VM_CPUS='$(VM_CPUS)' \
-			VM_EXTRA_ARGS='$(VM_EXTRA_ARGS)' VM_QEMU_OVERRIDE='$(VM_QEMU_OVERRIDE)' \
+			VM_EXTRA_ARGS='$(value VM_EXTRA_ARGS)' VM_QEMU_OVERRIDE='$(value VM_QEMU_OVERRIDE)' \
 			'$(RAVNVM)' $(1); \
 	fi
 endef
