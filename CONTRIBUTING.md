@@ -65,7 +65,7 @@ Thank you for your interest in contributing to Community Standards! We welcome a
 - Do not edit the generated entry manually. Edit the pull-request title or its
   changelog label and the automation will update the entry idempotently.
 
-5.1. **Optional But Recommended: Test with HydeVM** - You can test your changes in a VM using [HydeVM](Scripts/hydevm/README.md) before submitting.
+5.1. **Optional But Recommended: Test with RavnVM** - You can test a RaVN branch or commit in an isolated VM using [RavnVM](Scripts/ravnvm/README.md) before submitting.
 
 6. Push your changes to your forked repository.
 

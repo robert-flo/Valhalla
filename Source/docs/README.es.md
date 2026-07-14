@@ -161,12 +161,12 @@ Ya sea que ayude con código, pruebas o documentación, agradecemos su apoyo par
   <a href="#-design-by-t2"><kbd> <br> 🡅 <br> </kbd></a>
 </div>
 
-<a id="hydevm"></a>
-<img src="https://readme-typing-svg.herokuapp.com?font=Lexend+Giga&size=25&pause=1000&color=CCA9DD&vCenter=true&width=435&height=25&lines=HYDEVM" width="450"/>
+<a id="ravnvm"></a>
+<img src="https://readme-typing-svg.herokuapp.com?font=Lexend+Giga&size=25&pause=1000&color=CCA9DD&vCenter=true&width=435&height=25&lines=RAVNVM" width="450"/>
 
 ---
 
-HyDEVM es un script que le permite ejecutar HyDE en una máquina virtual para pruebas y desarrollo.
+RavnVM permite ejecutar ramas y commits de RaVN en una máquina virtual aislada para pruebas y desarrollo.
 
 ## Inicio rápido
 
@@ -174,22 +174,22 @@ HyDEVM es un script que le permite ejecutar HyDE en una máquina virtual para pr
 
 ```bash
 # Descargar y ejecutar (detectará automáticamente los paquetes faltantes)
-curl -L https://raw.githubusercontent.com/HyDE-Project/HyDE/main/Scripts/hydevm/hydevm.sh -o hydevm
-chmod +x hydevm
-./hydevm
+curl -L https://raw.githubusercontent.com/robert-flo/Valhalla/master/Scripts/ravnvm/ravnvm.sh -o ravnvm
+chmod +x ravnvm
+./ravnvm
 ```
 
 ### NixOS (o Nix)
 
 ```bash
-# Usando flakes desde el repositorio de HyDE
-nix run github:HyDE-Project/HyDE
+# Usando el flake de Valhalla
+nix run github:robert-flo/Valhalla
 
 # O si tiene el repositorio clonado localmente
 nix run .
 ```
 
-Para más detalles, consulte el [README de HyDEVM](Scripts/hydevm/README.md).
+Para más detalles, consulte el [README de RavnVM](Scripts/ravnvm/README.md).
 
 <div align="right">
   <br>

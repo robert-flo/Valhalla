@@ -136,12 +136,12 @@ For more details, you can refer to [Hyde-cli - dots management wiki](https://git
   <a href="#-design-by-t2"><kbd> <br> 🡅 <br> </kbd></a>
 </div>
 
-<a id="hydevm"></a>
-<img src="https://readme-typing-svg.herokuapp.com?font=Lexend+Giga&size=25&pause=1000&color=CCA9DD&vCenter=true&width=435&height=25&lines=HYDEVM" width="450"/>
+<a id="ravnvm"></a>
+<img src="https://readme-typing-svg.herokuapp.com?font=Lexend+Giga&size=25&pause=1000&color=CCA9DD&vCenter=true&width=435&height=25&lines=RAVNVM" width="450"/>
 
 ---
 
-HyDEVM, test ve geliştirme amacıyla HyDE'yi sanal makinede çalıştırmanıza olanak tanıyan bir komut dosyasıdır.
+RavnVM, test ve geliştirme amacıyla RaVN dal ve commit'lerini yalıtılmış bir sanal makinede çalıştırır.
 
 ## Hızlı Başlangıç
 
@@ -149,22 +149,22 @@ HyDEVM, test ve geliştirme amacıyla HyDE'yi sanal makinede çalıştırmanıza
 
 ```bash
 # İndirin ve çalıştırın (eksik paketleri otomatik olarak algılar)
-curl -L https://raw.githubusercontent.com/HyDE-Project/HyDE/main/Scripts/hydevm/hydevm.sh -o hydevm
-chmod +x hydevm
-./hydevm
+curl -L https://raw.githubusercontent.com/robert-flo/Valhalla/master/Scripts/ravnvm/ravnvm.sh -o ravnvm
+chmod +x ravnvm
+./ravnvm
 ```
 
 ### NixOS (veya Nix)
 
 ```bash
-# HyDE deposundan flake kullanımı
-nix run github:HyDE-Project/HyDE
+# Valhalla flake kullanımı
+nix run github:robert-flo/Valhalla
 
 # Veya depoyu yerel olarak klonladıysanız
 nix run .
 ```
 
-Daha fazla ayrıntı için lütfen [HyDEVM README](Scripts/hydevm/README.md) dosyasına bakın.
+Daha fazla ayrıntı için lütfen [RavnVM README](Scripts/ravnvm/README.md) dosyasına bakın.
 
 <div align="right">
   <br>
