@@ -21,7 +21,6 @@ readonly -a ARCH_PACKAGES=(qemu-desktop curl git openssh)
 
 ACTIVE_QEMU_PID=""
 TEMPORARY_PATHS=()
-SELECTED_PERSISTENCE=""
 
 print_error() {
   printf "${RED}Error:${NC} %s\n" "$*" >&2
@@ -200,10 +199,19 @@ list_snapshots() {
 }
 
 clean_cache() {
-  ensure_cache
+  if ! ensure_cache; then
+    print_error "Unable to prepare the RavnVM cache"
+    return 1
+  fi
   printf 'Cleaning RavnVM cache while preserving the base image...\n'
-  find "$CACHE_DIR" -mindepth 1 -maxdepth 1 ! -name 'archbase.qcow2' -exec rm -rf -- {} +
-  mkdir -p "$SNAPSHOTS_DIR"
+  if ! find "$CACHE_DIR" -mindepth 1 -maxdepth 1 ! -name 'archbase.qcow2' -exec rm -rf -- {} +; then
+    print_error "Unable to clean RavnVM cache"
+    return 1
+  fi
+  if ! mkdir -p "$SNAPSHOTS_DIR"; then
+    print_error "Unable to recreate the snapshots directory"
+    return 1
+  fi
   if [[ -f $BASE_IMAGE ]]; then
     print_success "Cache cleaned; base image preserved"
   else
@@ -501,8 +509,17 @@ validate_environment() {
   local command_name=""
   local validation_failed=false
 
-  ensure_cache
   print_section "Validating Environment"
+  if ! ensure_cache; then
+    print_error "RavnVM cache directory is not writable"
+    return 1
+  fi
+  if [[ ! -w $CACHE_DIR || ! -w $SNAPSHOTS_DIR ]]; then
+    print_error "RavnVM cache directory is not writable"
+    validation_failed=true
+  else
+    printf '✓ RavnVM cache directory\n'
+  fi
   for command_name in "${REQUIRED_COMMANDS[@]}"; do
     if command -v "$command_name" > /dev/null 2>&1; then
       printf '✓ %s\n' "$command_name"
@@ -562,9 +579,10 @@ show_menu() {
 }
 
 select_execution_mode() {
+  local -n selected_persistence="$1"
   local mode_choice=""
 
-  SELECTED_PERSISTENCE=""
+  selected_persistence=""
   print_section "Choose VM mode"
   printf '  %b1%b  Ephemeral\n' "$GREEN" "$NC"
   printf '  %b2%b  Persistent\n' "$GREEN" "$NC"
@@ -573,10 +591,12 @@ select_execution_mode() {
 
   case "$mode_choice" in
     1)
-      SELECTED_PERSISTENCE=false
+      # shellcheck disable=SC2034 # nameref writes the caller's selected mode
+      selected_persistence=false
       ;;
     2)
-      SELECTED_PERSISTENCE=true
+      # shellcheck disable=SC2034 # nameref writes the caller's selected mode
+      selected_persistence=true
       ;;
     q | Q)
       return 1
@@ -590,9 +610,10 @@ select_execution_mode() {
 
 run_menu_revision() {
   local revision="$1"
+  local persistent=""
 
-  select_execution_mode || return 0
-  run_revision "$revision" "$SELECTED_PERSISTENCE" || true
+  select_execution_mode persistent || return 0
+  run_revision "$revision" "$persistent" || true
   press_enter_to_continue
 }
 
@@ -608,6 +629,10 @@ configure_session_resources() {
 
   requested_memory="${requested_memory:-$current_memory}"
   requested_cpus="${requested_cpus:-$current_cpus}"
+  if [[ ! $requested_memory =~ ^[1-9][0-9]*[KkMmGgTt]?$ ]]; then
+    print_error "RAM must be a positive number with an optional K, M, G, or T suffix"
+    return 1
+  fi
   if [[ ! $requested_cpus =~ ^[1-9][0-9]*$ ]]; then
     print_error "CPU count must be a positive integer"
     return 1

@@ -76,6 +76,17 @@ assert_contains "$clean_output" "base image preserved"
 [[ -f "$XDG_CACHE_HOME/ravnvm/archbase.qcow2" ]] || fail "clean removed the base image"
 [[ ! -e "$XDG_CACHE_HOME/ravnvm/snapshots/ravn-dev.qcow2" ]] || fail "clean retained a snapshot"
 
+touch "$XDG_CACHE_HOME/ravnvm/snapshots/ravn-master-fc613b4dfd67.qcow2"
+touch "$XDG_CACHE_HOME/ravnvm/snapshots/ravn-dev-ef260e9aa3c6.qcow2"
+ephemeral_output=$(printf '1\n1\n\nq\n' | VM_QEMU_OVERRIDE=true "$RAVNVM_SCRIPT")
+assert_contains "$ephemeral_output" "non-persistent mode"
+assert_contains "$ephemeral_output" "branch/commit: master"
+persistent_output=$(printf '2\n2\n\nq\n' | VM_QEMU_OVERRIDE=true "$RAVNVM_SCRIPT")
+assert_contains "$persistent_output" "persistent mode"
+assert_contains "$persistent_output" "branch/commit: dev"
+custom_output=$(printf '4\ndev\n1\n\nq\n' | VM_QEMU_OVERRIDE=true "$RAVNVM_SCRIPT")
+assert_contains "$custom_output" "branch/commit: dev"
+
 storage_output=$(printf 'q\n' | "$RAVNVM_SCRIPT")
 assert_contains "$storage_output" "VM cache:"
 assert_contains "$storage_output" "Disk:"
@@ -98,6 +109,12 @@ if grep -Fq "Session resources: 8G RAM, 0 CPUs" <<< "$resource_invalid_output"; 
     fail "invalid CPU count was accepted"
 fi
 
+memory_invalid_output=$(printf '8\ngarbage\n4\n\nq\n' | "$RAVNVM_SCRIPT" 2>&1)
+assert_contains "$memory_invalid_output" "RAM must be a positive number"
+if grep -Fq "Session resources: garbage RAM" <<< "$memory_invalid_output"; then
+  fail "invalid RAM was accepted"
+fi
+
 menu_help_output=$(printf '9\nq\nq\n' | "$RAVNVM_SCRIPT")
 assert_contains "$menu_help_output" "Usage: ravnvm [OPTIONS] [BRANCH/COMMIT]"
 assert_contains "$menu_help_output" "VM_MEMORY=4G"
@@ -106,6 +123,56 @@ assert_contains "$menu_help_output" "RAVN_REPO"
 
 ssh_menu_output=$(printf '10\n\nq\n' | "$RAVNVM_SCRIPT")
 assert_contains "$ssh_menu_output" "Connect to VM via SSH"
+
+rm -f "$FAKE_BIN/ssh"
+ln -s /usr/bin/false "$FAKE_BIN/ssh"
+ssh_failure_output=$(printf '10\n\nq\n' | "$RAVNVM_SCRIPT" 2>&1)
+assert_contains "$ssh_failure_output" "Unable to connect to the running VM"
+rm -f "$FAKE_BIN/ssh"
+ln -s /usr/bin/true "$FAKE_BIN/ssh"
+
+cat > "$FAKE_BIN/find" << 'FAKE_FIND'
+#!/usr/bin/env bash
+exit 1
+FAKE_FIND
+chmod +x "$FAKE_BIN/find"
+cleanup_failure_output=$(printf '6\n\nq\n' | "$RAVNVM_SCRIPT" 2>&1)
+assert_contains "$cleanup_failure_output" "Unable to clean RavnVM cache"
+if grep -Fq "Cache cleaned" <<< "$cleanup_failure_output"; then
+  fail "failed cleanup was reported as successful"
+fi
+rm -f "$FAKE_BIN/find"
+
+readonly_cache="$FIXTURE_DIR/readonly-cache"
+mkdir -p "$readonly_cache/ravnvm/snapshots"
+chmod 500 "$readonly_cache/ravnvm" "$readonly_cache/ravnvm/snapshots"
+unwritable_output=$(XDG_CACHE_HOME="$readonly_cache" printf 'q\n' | XDG_CACHE_HOME="$readonly_cache" "$RAVNVM_SCRIPT" 2>&1)
+chmod 700 "$readonly_cache/ravnvm" "$readonly_cache/ravnvm/snapshots"
+assert_contains "$unwritable_output" "cache directory is not writable"
+if grep -Fq "Choose an action" <<< "$unwritable_output"; then
+  fail "unwritable cache opened the normal menu"
+fi
+
+cat > "$FAKE_BIN/df" << 'FAKE_DF'
+#!/usr/bin/env bash
+printf 'Filesystem 1-blocks Used Available Use%% Mounted on\n'
+printf 'fixture 100 85 15 85%% /\n'
+FAKE_DF
+chmod +x "$FAKE_BIN/df"
+storage_warning_output=$(printf '5\n\nq\n' | "$RAVNVM_SCRIPT" 2>&1)
+assert_contains "$storage_warning_output" "High usage"
+assert_contains "$storage_warning_output" "Storage usage is high"
+rm -f "$FAKE_BIN/df"
+
+interrupt_output="$FIXTURE_DIR/interrupt.out"
+if timeout --foreground --preserve-status --signal=INT 0.5 \
+  "$RAVNVM_SCRIPT" < <(sleep 5) > "$interrupt_output" 2>&1; then
+  fail "Ctrl-C returned success"
+else
+  interrupt_status=$?
+fi
+[[ $interrupt_status -eq 130 ]] || fail "Ctrl-C returned $interrupt_status instead of 130"
+assert_contains "$(< "$interrupt_output")" "RavnVM interrupted"
 
 rm -f "$FAKE_BIN/qemu-system-x86_64" "$FAKE_BIN/qemu-img"
 for command_name in env bash clear awk df du find sed basename mktemp mkdir rm grep cat git curl; do
