@@ -71,6 +71,7 @@ help-aliases: ## Show list of legacy aliases and their modern equivalents
 #	@printf "%-20s %-25s %s\n" "repl" "dev-repl" "Dev"
 #	@printf "%-20s %-25s %s\n" "shell" "dev-shell" "Dev"
 	@printf "%-20s %-25s %s\n" "vm" "dev-vm" "Dev"
+	@printf "%-20s %-25s %s\n" "dev-vm-size" "dev-vm-storage" "Dev"
 #	@printf "%-20s %-25s %s\n" "closure-size" "dev-size" "Dev"
 #	@printf "%-20s %-25s %s\n" "f / fmt-f" "fmt" "Format"
 #	@printf "%-20s %-25s %s\n" "format / fmt-c" "fmt-check" "Format"

@@ -9,6 +9,7 @@ whose destination target is currently available.
 | Alias | Target |
 | --- | --- |
 | `vm` | `dev-vm` |
+| `dev-vm-size` | `dev-vm-storage` |
 
 ## Git
 

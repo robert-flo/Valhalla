@@ -29,6 +29,7 @@ before_status=$(git -C "$ROOT_DIR" status --porcelain)
 
 help_output=$(make -s -C "$ROOT_DIR" help-aliases)
 assert_contains "$help_output" "vm                   dev-vm"
+assert_contains "$help_output" "dev-vm-size          dev-vm-storage"
 assert_contains "$help_output" "a / git-a            git-add"
 assert_contains "$help_output" "st/s / git-st/s      git-status"
 assert_not_contains "$help_output" "switch               sys-apply"
