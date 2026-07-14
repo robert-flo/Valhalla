@@ -15,6 +15,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Added
 
+- feat: add conservative RaVN applications ([#77](https://github.com/robert-flo/Valhalla/pull/77)). <!-- changelog-pr:77 -->
+
 - feat: add RaVN configuration overlay ([#76](https://github.com/robert-flo/Valhalla/pull/76)). <!-- changelog-pr:76 -->
 
 - feat: add manifest-driven RaVN binaries ([#75](https://github.com/robert-flo/Valhalla/pull/75)). <!-- changelog-pr:75 -->
