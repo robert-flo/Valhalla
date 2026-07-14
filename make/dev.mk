@@ -72,7 +72,7 @@ define run-ravnvm
 	fi; \
 	printf "\n$(YELLOW)📋 Quick Actions:$(NC)\n"; \
 	printf "$(DIM)────────────────────────────────────────────────────────────────────────────────$(NC)\n"; \
-	printf "  • inspect repository: $(BLUE)make git-status$(NC)\n"; \
+	printf "  • inspect repository:    $(BLUE)make git-status$(NC)\n"; \
 	printf "  • list cached snapshots: $(BLUE)make dev-vm-list$(NC)\n"; \
 	printf "  • check VM dependencies: $(BLUE)make dev-vm-setup$(NC)\n\n"
 endef
@@ -90,7 +90,7 @@ define run-ravnvm-readonly
 	fi; \
 	printf "\n$(YELLOW)📋 Quick Actions:$(NC)\n"; \
 	printf "$(DIM)────────────────────────────────────────────────────────────────────────────────$(NC)\n"; \
-	printf "  • run an ephemeral VM: $(BLUE)make dev-vm$(NC)\n"; \
+	printf "  • run an ephemeral VM:  $(BLUE)make dev-vm$(NC)\n"; \
 	printf "  • clean snapshots:    $(BLUE)make dev-vm-clean$(NC)\n"; \
 	printf "  • check dependencies:  $(BLUE)make dev-vm-setup$(NC)\n\n"
 endef
@@ -130,7 +130,7 @@ define run-ravnvm-clean
 	printf "$(DIM)────────────────────────────────────────────────────────────────────────────────$(NC)\n"; \
 	printf "  • list snapshots: $(BLUE)make dev-vm-list$(NC)\n"; \
 	printf "  • inspect storage: $(BLUE)make dev-vm-storage$(NC)\n"; \
-	printf "  • run an ephemeral VM: $(BLUE)make dev-vm$(NC)\n\n"
+	printf "  • run an ephemeral VM:  $(BLUE)make dev-vm$(NC)\n\n"
 endef
 
 define run-ravnvm-setup
@@ -161,7 +161,7 @@ define run-ravnvm-setup
 	fi; \
 	printf "\n$(YELLOW)📋 Quick Actions:$(NC)\n"; \
 	printf "$(DIM)────────────────────────────────────────────────────────────────────────────────$(NC)\n"; \
-	printf "  • run an ephemeral VM: $(BLUE)make dev-vm$(NC)\n"; \
+	printf "  • run an ephemeral VM:  $(BLUE)make dev-vm$(NC)\n"; \
 	printf "  • inspect VM storage:  $(BLUE)make dev-vm-storage$(NC)\n"; \
 	printf "  • list cached snapshots: $(BLUE)make dev-vm-list$(NC)\n\n"
 
