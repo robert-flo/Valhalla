@@ -15,6 +15,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Added
 
+- feat: make desktop launchers self-contained ([#74](https://github.com/robert-flo/Valhalla/pull/74)). <!-- changelog-pr:74 -->
+
 - feat: build progressive RaVN installer orchestrator ([#73](https://github.com/robert-flo/Valhalla/pull/73)). <!-- changelog-pr:73 -->
 
 - feat: make launcher assets self-contained ([#65](https://github.com/robert-flo/Valhalla/pull/65)). <!-- changelog-pr:65 -->
