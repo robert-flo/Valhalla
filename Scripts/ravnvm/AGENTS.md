@@ -16,7 +16,10 @@ dotfiles installer pipeline.
 - **Interactive menu**: no-argument execution validates the environment, then
   exposes revision execution, storage, snapshots, resources, usage, and SSH.
 - **Direct CLI**: preserve `--persist`, `--list`, `--clean`, `--install-deps`,
-  `--check-deps`, `--ssh`, and `--help`, plus direct branch/commit arguments.
+  `--check-deps`, `--storage`, `--ssh`, and `--help`, plus direct branch/commit
+  arguments.
+- **Make interface**: `make/dev.mk` delegates to the CLI for every VM operation;
+  do not duplicate VM execution, cache, storage, snapshot, or SSH logic there.
 - **VM defaults**: use `VM_MEMORY=4G` and `VM_CPUS=2` unless overridden for the
   current invocation or session.
 - **Repository source**: VM setup must clone or update the configured RaVN
@@ -65,6 +68,7 @@ Run the executable CLI and interaction suites:
 ```bash
 Scripts/ravnvm/tests/cli.sh
 Scripts/ravnvm/tests/menu.sh
+Scripts/ravnvm/tests/make.sh
 ```
 
 Also run `bash -n`, `shellcheck`, `shfmt`, and the repository pre-commit hook.
