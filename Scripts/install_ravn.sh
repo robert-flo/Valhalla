@@ -58,6 +58,38 @@ category_unavailable() {
   print_info "This category is visible for discovery and did not change your system"
 }
 
+run_unavailable_category_menu() {
+  local category="$1"
+  local choice=""
+
+  while true; do
+    clear || true
+    print_header "$category"
+    print_section "${RAVN_ICON[ui_command]} Choose an action"
+    echo -e "  ${GREEN}1${NC}  ${RAVN_ICON[ui_package]}  Install everything"
+    echo -e "  ${GREEN}2${NC}  ${RAVN_ICON[ui_check]}  Run tests"
+    echo -e "  ${GREEN}3${NC}  ${ICON_CLEANING}  Clean installed"
+    echo -e "  ${GREEN}q${NC}  ${RAVN_ICON[ui_arrow_left]}  Back"
+    echo ""
+    printf '%b' "${LIGHT_GRAY}Selection:${NC} "
+    read -r choice
+
+    case "$choice" in
+      1 | 2 | 3)
+        category_unavailable "$category"
+        press_enter_to_continue
+        ;;
+      q | Q)
+        return 0
+        ;;
+      *)
+        print_error "Invalid option: $choice"
+        press_enter_to_continue
+        ;;
+    esac
+  done
+}
+
 install_category() {
   case "$1" in
     launchers) install_all_launchers ;;
@@ -65,9 +97,9 @@ install_category() {
     configurations) category_unavailable "$CATEGORY_CONFIGURATIONS" ;;
     applications) category_unavailable "$CATEGORY_APPLICATIONS" ;;
     *)
-       print_error "Unknown RaVN category: $1"
-                                                return 2
-                                                         ;;
+      print_error "Unknown RaVN category: $1"
+      return 2
+      ;;
   esac
 }
 
@@ -183,21 +215,18 @@ run_main_menu() {
         run_launchers_menu
         ;;
       2)
-         category_unavailable "$CATEGORY_BINARIES"
-                                                    press_enter_to_continue
-                                                                            ;;
+        run_unavailable_category_menu "$CATEGORY_BINARIES"
+        ;;
       3)
-         category_unavailable "$CATEGORY_CONFIGURATIONS"
-                                                          press_enter_to_continue
-                                                                                  ;;
+        run_unavailable_category_menu "$CATEGORY_CONFIGURATIONS"
+        ;;
       4)
-         category_unavailable "$CATEGORY_APPLICATIONS"
-                                                        press_enter_to_continue
-                                                                                ;;
+        run_unavailable_category_menu "$CATEGORY_APPLICATIONS"
+        ;;
       5)
-         install_everything || true
-                                     press_enter_to_continue
-                                                             ;;
+        install_everything || true
+        press_enter_to_continue
+        ;;
       q | Q)
         echo ""
         print_goodbye "Goodbye, ${USER:-$(id -un)}!"
