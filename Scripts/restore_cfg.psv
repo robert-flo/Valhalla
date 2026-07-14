@@ -156,4 +156,4 @@ S|${HOME}/.local/share|waybar|waybar
 
 # CLI utilities
 O|${HOME}/.local/bin|ravn-dot|bash fzf
-O|${HOME}/.local/bin|git-setup global_fn.sh git-bare-clone git-create-worktree git-issue-worktree|git github-cli gnupg openssh jq
+O|${HOME}/.local/bin|git-setup global_fn.sh git-bare-clone git-create-worktree git-issue-worktree meld-comparisons|git github-cli gnupg openssh jq meld
