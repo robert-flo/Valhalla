@@ -6,7 +6,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LAUNCHERS_DIR="${SCRIPT_DIR}/launchers"
 LAUNCHER_INSTALLER="${LAUNCHERS_DIR}/install_launchers.sh"
 LAUNCHER_MANAGER="${LAUNCHERS_DIR}/manage_launchers.sh"
-LEGACY_INSTALLER="${SCRIPT_DIR}/install.sh"
 readonly CATEGORY_BINARIES="Binaries"
 readonly CATEGORY_CONFIGURATIONS="Configurations"
 readonly CATEGORY_APPLICATIONS="Applications"
@@ -30,7 +29,7 @@ press_enter_to_continue() {
 validate_launcher_sources() {
   local required_path=""
 
-  for required_path in "$LEGACY_INSTALLER" "$LAUNCHER_INSTALLER" "$LAUNCHER_MANAGER" "${LAUNCHERS_DIR}/restore_launchers.psv"; do
+  for required_path in "$LAUNCHER_INSTALLER" "$LAUNCHER_MANAGER" "${LAUNCHERS_DIR}/restore_launchers.psv"; do
     if [[ ! -f $required_path ]]; then
       print_error "Required launcher source not found: ${required_path#"$SCRIPT_DIR"/}"
       return 1
@@ -54,6 +53,7 @@ install_all_launchers() {
 }
 
 category_unavailable() {
+  CATEGORY_RESULT="unavailable"
   print_warn "$1 are not available yet"
   print_info "This category is visible for discovery and did not change your system"
 }
@@ -91,8 +91,15 @@ run_unavailable_category_menu() {
 }
 
 install_category() {
+  CATEGORY_RESULT="failed"
   case "$1" in
-    launchers) install_all_launchers ;;
+    launchers)
+      if install_all_launchers; then
+        CATEGORY_RESULT="ok"
+      else
+        return 1
+      fi
+      ;;
     binaries) category_unavailable "$CATEGORY_BINARIES" ;;
     configurations) category_unavailable "$CATEGORY_CONFIGURATIONS" ;;
     applications) category_unavailable "$CATEGORY_APPLICATIONS" ;;
@@ -112,7 +119,7 @@ install_everything() {
   print_header "Install everything"
   for category in launchers binaries configurations applications; do
     if install_category "$category"; then
-      results+=("$category:ok")
+      results+=("$category:${CATEGORY_RESULT}")
     else
       status=$?
       results+=("$category:failed($status)")
@@ -123,6 +130,8 @@ install_everything() {
   for status in "${results[@]}"; do
     if [[ $status == *:ok ]]; then
       print_success "$status"
+    elif [[ $status == *:unavailable ]]; then
+      print_warn "$status"
     else
       print_error "$status"
     fi
