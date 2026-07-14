@@ -556,6 +556,9 @@ function create_ravn_snapshot() {
 
     # Create setup script that will be available in the VM
     local setup_script="$CACHE_DIR/setup.sh"
+    local repository_name="${RAVNVM_REPO##*/}"
+    repository_name="${repository_name%.git}"
+    repository_name="${repository_name//[^a-zA-Z0-9._-]/_}"
     register_temporary_path "$setup_script"
     cat > "$setup_script" << SETUP_EOF
 #!/bin/bash
@@ -568,6 +571,7 @@ guest_warn() { printf '⚠ %s\n' "\$*" >&2; }
 guest_success() { printf '✓ %s\n' "\$*"; }
 
 guest_step "Setting up RaVN environment for branch/commit: $ref"
+guest_info "Repository directory: /home/arch/${repository_name}"
 
 # Set root password for convenience (using 'arch' as requested for simplicity)
 guest_step "Setting root password..."
@@ -593,16 +597,16 @@ if ! git ls-remote "$RAVNVM_REPO" HEAD >/dev/null 2>&1; then
     exit 1
 fi
 cd /home/arch
-if [ -d "RaVN" ]; then
-    guest_info "RaVN directory exists, updating..."
-    cd RaVN
+if [ -d "/home/arch/${repository_name}" ]; then
+    guest_info "Repository directory exists, updating..."
+    cd "/home/arch/${repository_name}"
     git remote set-url origin "$RAVNVM_REPO" 2>/dev/null || true
     git fetch origin
     git reset --hard HEAD  # Reset any local changes
 else
-    guest_info "Cloning RaVN repository..."
-    git clone "$RAVNVM_REPO" RaVN
-    cd RaVN
+    guest_info "Cloning repository..."
+    git clone "$RAVNVM_REPO" "/home/arch/${repository_name}"
+    cd "/home/arch/${repository_name}"
 fi
 
 # Checkout specific branch/commit if provided
@@ -636,7 +640,7 @@ if [ -f "/home/arch/.config/hypr/hyprland.conf" ] && [ -f "/home/arch/.config/hy
     guest_info "To reinstall, remove ~/.config/hypr and ~/.config/hyde first."
 else
     guest_step "Starting RaVN installation..."
-    cd /home/arch/RaVN/Scripts
+    cd "/home/arch/${repository_name}/Scripts"
     ./install.sh
     guest_success "RaVN installation complete!"
 fi
