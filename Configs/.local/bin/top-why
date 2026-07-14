@@ -1,0 +1,442 @@
+#!/usr/bin/env python3
+"""top-why — muestra qué consume CPU y memoria, en vivo y con estilo."""
+
+import argparse
+import os
+import pwd
+import shutil
+import subprocess
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+VENV_DIR = Path.home() / ".local" / "share" / "top-why-venv"
+
+
+def _ensure_rich():
+    if VENV_DIR.exists():
+        for lib in VENV_DIR.glob("lib/python*/site-packages"):
+            sp = str(lib)
+            if sp not in sys.path:
+                sys.path.insert(0, sp)
+            break
+        try:
+            import rich  # noqa: F401
+            return
+        except ImportError:
+            pass
+    print("Installing rich (one-time setup)...")
+    VENV_DIR.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.check_call([sys.executable, "-m", "venv", str(VENV_DIR)])
+    subprocess.check_call(
+        [str(VENV_DIR / "bin" / "pip"), "install", "rich"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    for lib in VENV_DIR.glob("lib/python*/site-packages"):
+        sp = str(lib)
+        if sp not in sys.path:
+            sys.path.insert(0, sp)
+        break
+    import rich  # noqa: F401
+
+
+_ensure_rich()
+
+from rich.console import Console
+from rich.live import Live
+from rich.panel import Panel
+from rich.progress_bar import ProgressBar
+from rich.table import Column, Table
+from rich.text import Text
+from rich import box
+
+CLK_TCK = os.sysconf(os.sysconf_names["SC_CLK_TCK"])
+PAGE_SIZE_KB = os.sysconf(os.sysconf_names["SC_PAGE_SIZE"]) // 1024
+NUM_CPUS = os.cpu_count() or 1
+
+
+def cpu_total_idle():
+    with open("/proc/stat") as f:
+        line = f.readline()
+    parts = line.split()
+    idle = int(parts[4])
+    return sum(int(v) for v in parts[1:]), idle
+
+
+def uptime():
+    with open("/proc/uptime") as f:
+        return float(f.read().split()[0])
+
+
+def memory():
+    total = available = 0
+    with open("/proc/meminfo") as f:
+        for line in f:
+            if line.startswith("MemTotal:"):
+                total = int(line.split()[1])
+            elif line.startswith("MemAvailable:"):
+                available = int(line.split()[1])
+    return total, available
+
+
+def swap():
+    total = free = 0
+    with open("/proc/meminfo") as f:
+        for line in f:
+            if line.startswith("SwapTotal:"):
+                total = int(line.split()[1])
+            elif line.startswith("SwapFree:"):
+                free = int(line.split()[1])
+    return total, free
+
+
+def loadavg():
+    with open("/proc/loadavg") as f:
+        parts = f.read().split()
+    procs = parts[3].split("/")
+    return {
+        "1m": float(parts[0]),
+        "5m": float(parts[1]),
+        "15m": float(parts[2]),
+        "running": int(procs[0]),
+        "total": int(procs[1]),
+    }
+
+
+def cmdline(pid):
+    try:
+        with open(f"/proc/{pid}/cmdline") as f:
+            raw = f.read().rstrip("\0")
+        return " ".join(raw.split("\0")).strip() if raw else ""
+    except OSError:
+        return ""
+
+
+def proc_stat(pid):
+    try:
+        with open(f"/proc/{pid}/stat") as f:
+            data = f.read()
+    except OSError:
+        return None
+    try:
+        rparen = data.rfind(")")
+        comm = data[data.find("(") + 1 : rparen]
+        fields = data[rparen + 2 :].split()
+        return {
+            "comm": comm,
+            "state": fields[0],
+            "utime": int(fields[11]),
+            "stime": int(fields[12]),
+            "starttime": int(fields[19]),
+            "rss": int(fields[21]),
+        }
+    except (IndexError, ValueError):
+        return None
+
+
+def fmt(kb):
+    if kb >= 1048576:
+        return f"{kb / 1048576:.1f}G"
+    if kb >= 1024:
+        return f"{kb / 1024:.0f}M"
+    return f"{kb}K"
+
+
+STATE_ABBR = {"R": "RUN", "S": "SLP", "D": "DSK", "Z": "ZOM", "T": "STP", "t": "TRC", "I": "IDL"}
+STATE_STYLE = {"R": "green", "S": "cyan", "D": "yellow", "Z": "red", "T": "white", "t": "white", "I": "dim white"}
+
+
+def pct_style(v):
+    if v >= 70:
+        return "red"
+    if v >= 30:
+        return "yellow"
+    return "green"
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="top-why — muestra qué consume CPU y memoria, en vivo y con estilo.",
+        epilog="""ejemplos:
+  top-why                    modo live (refresca cada 2s, Ctrl+C para salir)
+  top-why --once             captura única y sale
+  top-why -n 5               refresca cada 5 segundos
+  top-why --log              guarda snapshot en ~/top-why.log
+  top-why --log-file ruta    guarda snapshot en ruta específica
+  top-why --show-self        incluye el propio proceso en las tablas
+  top-why --once --log       captura única + guarda a archivo
+
+Todas las opciones pueden combinarse libremente.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("--once", action="store_true", help="una captura y salir")
+    parser.add_argument("-n", "--interval", type=float, default=2.0, help="intervalo (s)")
+    parser.add_argument("--show-self", action="store_true", help="incluir el propio proceso")
+    parser.add_argument("--log", action="store_true", help="guardar snapshot a ~/top-why.log")
+    parser.add_argument("--log-file", type=str, metavar="FILE", help="guardar snapshot a archivo específico")
+    args = parser.parse_args()
+
+    console = Console()
+
+    prev_total = None
+    prev_ticks: dict[int, int] = {}
+    uid_cache: dict[int, str] = {0: "root"}
+    my_pid = os.getpid()
+
+    do_log = args.log or bool(args.log_file)
+    log_path = Path(args.log_file) if args.log_file else Path.home() / "top-why.log"
+    if do_log:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+    _logged = False
+
+    def resolve_user(pid):
+        try:
+            uid = os.stat(f"/proc/{pid}").st_uid
+        except OSError:
+            return "?"
+        if uid in uid_cache:
+            return uid_cache[uid]
+        try:
+            name = pwd.getpwuid(uid).pw_name
+        except KeyError:
+            name = str(uid)
+        uid_cache[uid] = name
+        return name
+
+    def collect_procs():
+        nonlocal prev_total, prev_ticks
+
+        up = uptime()
+        cpu_total, cpu_idle = cpu_total_idle()
+        mem_total_kb, mem_avail_kb = memory()
+        swap_total_kb, swap_free_kb = swap()
+        load = loadavg()
+
+        procs = []
+        for entry in os.listdir("/proc"):
+            if not entry.isdigit():
+                continue
+            pid = int(entry)
+            if not args.show_self and pid == my_pid:
+                continue
+            info = proc_stat(pid)
+            if info is None:
+                continue
+
+            mem_kb = info["rss"] * PAGE_SIZE_KB
+            mem_pct = (mem_kb / mem_total_kb) * 100 if mem_total_kb else 0
+
+            ticks = info["utime"] + info["stime"]
+            if prev_total is not None and pid in prev_ticks:
+                d_ticks = ticks - prev_ticks[pid]
+                d_total = cpu_total - prev_total
+                cpu_pct = (d_ticks / d_total) * (100 * NUM_CPUS) if d_total > 0 else 0
+            else:
+                elapsed = up - (info["starttime"] / CLK_TCK)
+                cpu_pct = ((ticks / CLK_TCK) / elapsed) * 100 if elapsed > 0 else 0
+
+            prev_ticks[pid] = ticks
+
+            cmd = cmdline(pid)
+            display = cmd if cmd else info["comm"]
+            user = resolve_user(pid)
+
+            procs.append({
+                "pid": pid,
+                "user": user,
+                "cmd": display,
+                "cpu_pct": cpu_pct,
+                "mem_pct": mem_pct,
+                "mem_kb": mem_kb,
+                "state": info["state"],
+            })
+
+        prev_total = cpu_total
+
+        active = {int(e) for e in os.listdir("/proc") if e.isdigit()}
+        for pid in list(prev_ticks):
+            if pid not in active:
+                del prev_ticks[pid]
+
+        return procs, up, cpu_total, cpu_idle, mem_total_kb, mem_avail_kb, swap_total_kb, swap_free_kb, load
+
+    def build_summary(cpu_total, cpu_idle, mem_total_kb, mem_avail_kb, swap_total_kb, swap_free_kb, up, load, procs_count):
+        width = shutil.get_terminal_size((80, 24)).columns
+        bar_w = max(10, width // 4)
+
+        cpu_used = max(0.0, 100.0 - (cpu_idle / cpu_total) * 100) if cpu_total else 0.0
+        mem_used_kb = mem_total_kb - mem_avail_kb
+        mem_used_pct = (mem_used_kb / mem_total_kb) * 100 if mem_total_kb else 0.0
+
+        cpu_bar = ProgressBar(cpu_used / 100.0, width=bar_w, complete_style=pct_style(cpu_used))
+        mem_bar = ProgressBar(mem_used_pct / 100.0, width=bar_w, complete_style=pct_style(mem_used_pct))
+
+        summary = Table.grid(padding=(0, 2))
+        summary.add_row(Text("CPU", style="bold"), cpu_bar, Text(f"{cpu_used:.1f}%", style=pct_style(cpu_used)))
+        summary.add_row(
+            Text("MEM", style="bold"),
+            mem_bar,
+            Text(f"{mem_used_pct:.1f}%  {fmt(mem_used_kb)} / {fmt(mem_total_kb)}", style=pct_style(mem_used_pct)),
+        )
+        if swap_total_kb:
+            swap_used_kb = swap_total_kb - swap_free_kb
+            swap_pct = (swap_used_kb / swap_total_kb) * 100
+            swap_bar = ProgressBar(swap_pct / 100.0, width=bar_w, complete_style=pct_style(swap_pct))
+            summary.add_row(
+                Text("SWAP", style="bold"),
+                swap_bar,
+                Text(f"{swap_pct:.1f}%  {fmt(swap_used_kb)} / {fmt(swap_total_kb)}", style=pct_style(swap_pct)),
+            )
+        load_pct = (load['1m'] / NUM_CPUS) * 100
+        load_style = pct_style(load_pct)
+        summary.add_row(
+            Text("CPU Load", style="bold"),
+            Text(""),
+            Text(f"{load['1m']:.2f} / {NUM_CPUS} cores  ({load_pct:.0f}%)", style=load_style),
+        )
+        summary.add_row(
+            Text("Active", style="bold"),
+            Text(""),
+            Text(f"{load['running']} running, {load['total']} total", style="green" if load['running'] else "dim"),
+        )
+        summary.add_row(Text("Uptime", style="dim"), Text(""), Text(f"{up / 3600:.1f}h"))
+
+        return Panel(summary, title="System", subtitle=" Ctrl+C exit | -h | --once | -n SEC | --log ", border_style="blue", padding=(1, 2))
+
+    def build_cpu_table(cpu_top):
+        width = shutil.get_terminal_size((80, 24)).columns
+        user_w = max(6, min(10, width // 12))
+        cmd_w = max(30, width - user_w - 34)
+
+        table = Table(
+            Column("PID", justify="right", style="dim", width=6),
+            Column("USER", width=user_w),
+            Column("COMMAND", width=cmd_w, overflow="ellipsis", no_wrap=True),
+            Column("CPU%", justify="right", width=6),
+            Column("MEM%", justify="right", width=6),
+            Column("ST", justify="center", width=4),
+            title="Top CPU",
+            box=box.SIMPLE,
+            padding=(0, 1),
+        )
+        for p in cpu_top:
+            table.add_row(
+                str(p["pid"]),
+                p["user"][:user_w],
+                p["cmd"],
+                Text(f"{p['cpu_pct']:5.1f}", style=pct_style(p["cpu_pct"])),
+                Text(f"{p['mem_pct']:5.1f}", style=pct_style(p["mem_pct"])),
+                Text(STATE_ABBR.get(p["state"], p["state"]), style=STATE_STYLE.get(p["state"], "white")),
+            )
+        return table
+
+    def build_mem_table(mem_top):
+        width = shutil.get_terminal_size((80, 24)).columns
+        user_w = max(6, min(10, width // 12))
+        cmd_w = max(30, width - user_w - 38)
+        mem_w = max(8, min(14, width // 10))
+
+        table = Table(
+            Column("PID", justify="right", style="dim", width=6),
+            Column("USER", width=user_w),
+            Column("COMMAND", width=cmd_w, overflow="ellipsis", no_wrap=True),
+            Column("MEM%", justify="right", width=6),
+            Column("MEM", justify="right", width=mem_w),
+            Column("ST", justify="center", width=4),
+            title="Top Memory",
+            box=box.SIMPLE,
+            padding=(0, 1),
+        )
+        for p in mem_top:
+            table.add_row(
+                str(p["pid"]),
+                p["user"][:user_w],
+                p["cmd"],
+                Text(f"{p['mem_pct']:5.1f}", style=pct_style(p["mem_pct"])),
+                fmt(p["mem_kb"]),
+                Text(STATE_ABBR.get(p["state"], p["state"]), style=STATE_STYLE.get(p["state"], "white")),
+            )
+        return table
+
+    def log_snapshot(procs, up, cpu_total, cpu_idle, mem_total_kb, mem_avail_kb, swap_total_kb, swap_free_kb, load):
+        cpu_top = sorted(procs, key=lambda p: p["cpu_pct"], reverse=True)[:10]
+        mem_top = sorted(procs, key=lambda p: p["mem_pct"], reverse=True)[:10]
+
+        cpu_used = max(0.0, 100.0 - (cpu_idle / cpu_total) * 100) if cpu_total else 0.0
+        mem_used_kb = mem_total_kb - mem_avail_kb
+        mem_pct = (mem_used_kb / mem_total_kb) * 100 if mem_total_kb else 0.0
+
+        lines = [
+            f"=== top-why snapshot {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===",
+            "",
+            f"CPU   {cpu_used:.1f}%",
+            f"MEM   {mem_pct:.1f}%  {fmt(mem_used_kb)} / {fmt(mem_total_kb)}",
+        ]
+        if swap_total_kb:
+            swap_used_kb = swap_total_kb - swap_free_kb
+            swap_pct = (swap_used_kb / swap_total_kb) * 100
+            lines.append(f"SWAP  {swap_pct:.1f}%  {fmt(swap_used_kb)} / {fmt(swap_total_kb)}")
+        lines += [
+            f"Load  {load['1m']:.2f}  {load['5m']:.2f}  {load['15m']:.2f}",
+            f"Procs {load['total']} ({load['running']} running)",
+            f"Uptime {up / 3600:.1f}h",
+            "",
+            f"{'PID':>6} {'USER':<8} {'COMMAND':<50} {'CPU%':>6} {'MEM%':>6} {'ST':>4}",
+            "-" * 85,
+        ]
+        for p in cpu_top:
+            lines.append(f"{p['pid']:>6} {p['user']:<8} {p['cmd'][:50]:<50} {p['cpu_pct']:>5.1f} {p['mem_pct']:>5.1f} {STATE_ABBR.get(p['state'], p['state']):>4}")
+
+        lines += [
+            "",
+            f"{'PID':>6} {'USER':<8} {'COMMAND':<50} {'MEM%':>6} {'MEM':>8} {'ST':>4}",
+            "-" * 85,
+        ]
+        for p in mem_top:
+            lines.append(f"{p['pid']:>6} {p['user']:<8} {p['cmd'][:50]:<50} {p['mem_pct']:>5.1f} {fmt(p['mem_kb']):>8} {STATE_ABBR.get(p['state'], p['state']):>4}")
+
+        lines += ["", "=" * 50]
+
+        with open(log_path, "a") as f:
+            f.write("\n".join(lines) + "\n\n")
+
+    def tick():
+        nonlocal _logged
+        procs, up, cpu_total, cpu_idle, mem_total_kb, mem_avail_kb, swap_total_kb, swap_free_kb, load = collect_procs()
+
+        cpu_top = sorted(procs, key=lambda p: p["cpu_pct"], reverse=True)[:10]
+        mem_top = sorted(procs, key=lambda p: p["mem_pct"], reverse=True)[:10]
+
+        if do_log and not _logged:
+            log_snapshot(procs, up, cpu_total, cpu_idle, mem_total_kb, mem_avail_kb, swap_total_kb, swap_free_kb, load)
+            _logged = True
+
+        sys_panel = build_summary(cpu_total, cpu_idle, mem_total_kb, mem_avail_kb, swap_total_kb, swap_free_kb, up, load, len(procs))
+        cpu_table = build_cpu_table(cpu_top)
+        mem_table = build_mem_table(mem_top)
+
+        grid = Table.grid()
+        grid.add_row(sys_panel)
+        grid.add_row(Text(""))
+        grid.add_row(cpu_table)
+        grid.add_row(mem_table)
+        return grid
+
+    if args.once:
+        console.print(tick())
+        return
+
+    try:
+        with Live(console=console, screen=True, refresh_per_second=4) as live:
+            while True:
+                live.update(tick())
+                time.sleep(args.interval)
+    except KeyboardInterrupt:
+        pass
+
+
+if __name__ == "__main__":
+    main()
