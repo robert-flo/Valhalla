@@ -72,6 +72,13 @@ readonly ICON_GEAR="[GEAR]"
 readonly ICON_ROCKET="[ROCKET]"
 # shellcheck disable=SC2034
 readonly ICON_PACKAGE="[PACKAGE]"
+# RavnVM workflow icons retained as reusable public constants.
+# shellcheck disable=SC2034
+readonly ICON_SNAPSHOT="📸"
+# shellcheck disable=SC2034
+readonly ICON_BUILD="🔨"
+# shellcheck disable=SC2034
+readonly ICON_VM="🖥️"
 
 # Nerd Font catalog from Scripts/icons.lua. Keep semantic aliases above stable
 # for existing consumers; use this namespaced catalog for new interfaces.

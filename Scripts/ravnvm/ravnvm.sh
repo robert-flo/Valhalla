@@ -514,7 +514,7 @@ function create_ravn_snapshot() {
         return 0
   fi
 
-    echo "🔨 Creating RaVN snapshot for '$ref'..."
+    echo "${ICON_BUILD} Creating RaVN snapshot for '$ref'..."
 
     # Create temporary VM image for setup
     local temp_image="$CACHE_DIR/temp-setup.qcow2"
@@ -611,7 +611,7 @@ SETUP_EOF
     chmod +x "$setup_script"
 
     echo ""
-    echo "🖥️  Starting VM for RaVN installation..."
+    echo "${ICON_VM}  Starting VM for RaVN installation..."
     echo "📋 SETUP INSTRUCTIONS:"
     echo "   1. The VM will boot in the background."
     echo "   2. The setup script will be automatically copied to /home/arch/setup.sh via SSH (port ${SSH_PORT})."
@@ -687,7 +687,7 @@ function run_vm() {
 
     # Ensure snapshot exists
     if [ ! -f "$snapshot_path" ]; then
-        echo "📸 Snapshot for '$ref' not found, creating it..."
+        echo "${ICON_SNAPSHOT} Snapshot for '$ref' not found, creating it..."
         if ! create_ravn_snapshot "$ref"; then
             return 1
     fi
