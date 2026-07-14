@@ -80,6 +80,7 @@ clean_launchers() {
   local launcher_path=""
   local existing=()
   local answer=""
+  local dry_run="${DRY_RUN:-0}"
 
   print_section "${ICON_CLEANING} Clean managed launchers"
   while IFS= read -r launcher_path; do
@@ -95,6 +96,10 @@ clean_launchers() {
   for launcher_path in "${existing[@]}"; do
     print_info "$(display_path "$launcher_path")"
   done
+  if [[ $dry_run == 1 ]]; then
+    print_info "Dry run: no launcher artifacts were removed"
+    return 0
+  fi
   echo ""
   read -r -p "Type yes to continue: " answer
   if [[ $answer != yes ]]; then
@@ -118,6 +123,7 @@ Usage: manage_launchers.sh [COMMAND]
 Commands:
   test, --test       Audit declared launcher artifacts in $HOME
   clean, --clean     Remove declared launcher artifacts after confirmation
+  dry-run, --dry-run Show cleanup actions without modifying the system
   help, --help       Show this help
 USAGE
 }
@@ -128,6 +134,9 @@ case "${1:-test}" in
     ;;
   clean | --clean)
     clean_launchers
+    ;;
+  dry-run | --dry-run)
+    DRY_RUN=1 clean_launchers
     ;;
   help | --help | -h)
     print_usage
