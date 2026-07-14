@@ -514,7 +514,7 @@ function create_ravn_snapshot() {
         return 0
   fi
 
-    print_step "Creating RaVN snapshot for '$ref'..."
+    echo "🔨 Creating RaVN snapshot for '$ref'..."
 
     # Create temporary VM image for setup
     local temp_image="$CACHE_DIR/temp-setup.qcow2"
@@ -610,14 +610,16 @@ SETUP_EOF
 
     chmod +x "$setup_script"
 
-    print_step "Starting VM for RaVN installation..."
-    print_section "Setup instructions"
-    print_info "The VM will boot in the background."
-    print_info "The setup script will be copied to /home/arch/setup.sh via SSH (port ${SSH_PORT})."
-    print_info "Login with arch/arch or SSH into it: ssh arch@127.0.0.1 -p ${SSH_PORT} (or ssh ravnvm)."
-    print_info "Run: chmod +x ./setup.sh && ./setup.sh"
-    print_info "When installation finishes, power off the VM: sudo poweroff."
-    print_info "This automatically completes snapshot creation on the host."
+    echo ""
+    echo "🖥️  Starting VM for RaVN installation..."
+    echo "📋 SETUP INSTRUCTIONS:"
+    echo "   1. The VM will boot in the background."
+    echo "   2. The setup script will be automatically copied to /home/arch/setup.sh via SSH (port ${SSH_PORT})."
+    echo "   3. Once copied, login to the VM (arch/arch) or SSH into it: ssh arch@127.0.0.1 -p ${SSH_PORT} (or ssh ravnvm)"
+    echo "   4. Run the setup script manually: chmod +x ./setup.sh && ./setup.sh"
+    echo "   5. When the installation finishes, power off the VM: sudo poweroff"
+    echo "      (This will automatically complete the snapshot creation on the host)"
+    echo ""
 
     # Start VM for setup in background with SSH port forward
     run_qemu_vm "$temp_image" "${VM_MEMORY:-4G}" "${VM_CPUS:-2}" "hostfwd=tcp::${SSH_PORT}-:22" "background"
@@ -685,7 +687,7 @@ function run_vm() {
 
     # Ensure snapshot exists
     if [ ! -f "$snapshot_path" ]; then
-        print_info "Snapshot for '$ref' not found, creating it..."
+        echo "📸 Snapshot for '$ref' not found, creating it..."
         if ! create_ravn_snapshot "$ref"; then
             return 1
     fi
