@@ -40,6 +40,7 @@ assert_contains "$menu_output" "Run current branch"
 assert_contains "$menu_output" "Run other branch or commit"
 assert_contains "$menu_output" "Show RavnVM usage"
 assert_contains "$menu_output" "Connect to VM via SSH"
+assert_contains "$menu_output" "Install SSH alias"
 assert_contains "$menu_output" "Goodbye!"
 
 invalid_output=$(printf 'x\n\nq\n' | "$RAVNVM_SCRIPT")

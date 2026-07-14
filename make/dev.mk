@@ -1,4 +1,4 @@
-RAVNVM ?= $(SCRIPTS_DIR)/ravnvm/ravnvm.sh
+RAVNVM ?= $(SCRIPTS_DIR)/ravnvm-old/ravnvm.sh
 GIT ?= git
 REF ?= $(shell ref=$$($(GIT) branch --show-current 2>/dev/null); \
 	if [ -n "$$ref" ]; then printf '%s' "$$ref"; \
@@ -10,7 +10,7 @@ VM_QEMU_OVERRIDE ?=
 DRY_RUN ?= 0
 
 RAVNVM_TARGETS := dev-vm dev-vm-persist dev-vm-list dev-vm-clean dev-vm-setup \
-	dev-vm-storage dev-vm-size dev-vm-ssh
+	dev-vm-storage dev-vm-size dev-vm-ssh dev-vm-install-ssh-alias
 
 .PHONY: help $(RAVNVM_TARGETS)
 
@@ -35,6 +35,7 @@ help: ## Show the RavnVM development targets
 	@printf '  make dev-vm-storage     Show RavnVM storage usage\n'
 	@printf '  make dev-vm-size        Alias for dev-vm-storage\n'
 	@printf '  make dev-vm-ssh         Connect to the running VM via SSH\n'
+	@printf '  make dev-vm-install-ssh-alias  Install the ssh ravnvm host alias\n'
 	@printf '\nSet DRY_RUN=1 to print commands without executing RavnVM.\n'
 
 dev-vm: ## Run an ephemeral VM
@@ -56,6 +57,9 @@ dev-vm-size: dev-vm-storage ## Compatibility alias for storage usage
 
 dev-vm-ssh: ## Connect to the running VM via SSH
 	$(call run-ravnvm,--ssh)
+
+dev-vm-install-ssh-alias: ## Install the ssh ravnvm host alias
+	$(call run-ravnvm,--install-ssh-alias)
 
 dev-vm-setup: ## Check or install VM dependencies
 	@if [ "$(DRY_RUN)" = "1" ]; then \

@@ -27,6 +27,7 @@ fi
 #   --clean             — Remove cached VM state
 #   --check-deps        — Check host dependencies
 #   --install-deps      — Install host dependencies on Arch Linux
+#   --install-ssh-alias — Configure the `ssh ravnvm` host alias
 #   --help              — Show command help
 
 set -e
@@ -41,10 +42,12 @@ function cleanup_runtime() {
     kill "$ACTIVE_QEMU_PID" 2> /dev/null || true
     wait "$ACTIVE_QEMU_PID" 2> /dev/null || true
   fi
+  ACTIVE_QEMU_PID=""
 
   for temporary_path in "${TEMPORARY_PATHS[@]}"; do
     rm -f -- "$temporary_path"
   done
+  TEMPORARY_PATHS=()
 }
 
 function handle_interrupt() {
@@ -66,6 +69,11 @@ CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/ravnvm"
 BASE_IMAGE="$CACHE_DIR/archbase.qcow2"
 SNAPSHOTS_DIR="$CACHE_DIR/snapshots"
 RAVN_REPO="https://github.com/robert-flo/RaVN.git"
+SSH_PORT=2222
+SSH_READY_TIMEOUT="${RAVNVM_SSH_READY_TIMEOUT:-120}"
+if [[ ! $SSH_READY_TIMEOUT =~ ^[0-9]+$ ]]; then
+    SSH_READY_TIMEOUT=120
+fi
 # Required packages for Arch Linux
 ARCH_PACKAGES=(
     "qemu-desktop"
@@ -116,6 +124,7 @@ function print_usage() {
     echo "  --clean                 Clean all cached data"
     echo "  --install-deps          Install required dependencies (Arch only)"
     echo "  --check-deps            Check if dependencies are installed"
+    echo "  --install-ssh-alias     Configure the 'ssh ravnvm' host alias"
     echo "  --ssh                   Connect to the running VM via SSH"
     echo "  --help                  Show this help"
     echo ""
@@ -412,6 +421,29 @@ function run_qemu_vm() {
   fi
 }
 
+function wait_for_guest_ssh() {
+    local qemu_pid="$1"
+    local deadline=$((SECONDS + SSH_READY_TIMEOUT))
+
+    while ((SECONDS <= deadline)); do
+        if ssh-keyscan -p "$SSH_PORT" 127.0.0.1 2> /dev/null | grep -q "ssh-"; then
+            return 0
+    fi
+
+        if ! kill -0 "$qemu_pid" 2> /dev/null; then
+            wait "$qemu_pid" 2> /dev/null || true
+            ACTIVE_QEMU_PID=""
+            print_error "The setup VM stopped before SSH became available"
+            return 1
+    fi
+
+        sleep 1
+  done
+
+    print_error "Timed out waiting for the setup VM SSH server"
+    return 1
+}
+
 # ┌──────────────────────────────────────────────────────────────────────────────┐
 # │ Images & Snapshots                                                           │
 # └──────────────────────────────────────────────────────────────────────────────┘
@@ -563,31 +595,32 @@ SETUP_EOF
     echo "🖥️  Starting VM for RaVN installation..."
     echo "📋 SETUP INSTRUCTIONS:"
     echo "   1. The VM will boot in the background."
-    echo "   2. The setup script will be automatically copied to /home/arch/setup.sh via SSH (port 2222)."
-    echo "   3. Once copied, login to the VM (arch/arch) or SSH into it: ssh arch@127.0.0.1 -p 2222 (or ssh ravnvm)"
+    echo "   2. The setup script will be automatically copied to /home/arch/setup.sh via SSH (port ${SSH_PORT})."
+    echo "   3. Once copied, login to the VM (arch/arch) or SSH into it: ssh arch@127.0.0.1 -p ${SSH_PORT} (or ssh ravnvm)"
     echo "   4. Run the setup script manually: chmod +x ./setup.sh && ./setup.sh"
     echo "   5. When the installation finishes, power off the VM: sudo poweroff"
     echo "      (This will automatically complete the snapshot creation on the host)"
     echo ""
 
     # Start VM for setup in background with SSH port forward
-    run_qemu_vm "$temp_image" "${VM_MEMORY:-4G}" "${VM_CPUS:-2}" "hostfwd=tcp::2222-:22" "background"
+    run_qemu_vm "$temp_image" "${VM_MEMORY:-4G}" "${VM_CPUS:-2}" "hostfwd=tcp::${SSH_PORT}-:22" "background"
     local qemu_pid="$ACTIVE_QEMU_PID"
 
     echo "⏳ Waiting for VM SSH server to be fully ready..."
-    while ! ssh-keyscan -p 2222 127.0.0.1 2> /dev/null | grep -q "ssh-"; do
-        sleep 1
-  done
+    if ! wait_for_guest_ssh "$qemu_pid"; then
+        cleanup_runtime
+        return 1
+  fi
     echo "✅ SSH server is ready."
 
     echo "📥 Copying setup script to VM..."
     # We use StrictHostKeyChecking=no and UserKnownHostsFile=/dev/null to avoid host key warnings
     local ssh_opts=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
     if command -v sshpass > /dev/null 2>&1; then
-        sshpass -p 'arch' scp -P 2222 "${ssh_opts[@]}" "$setup_script" arch@127.0.0.1:/home/arch/setup.sh
+        sshpass -p 'arch' scp -P "$SSH_PORT" "${ssh_opts[@]}" "$setup_script" arch@127.0.0.1:/home/arch/setup.sh
   else
         echo "💡 Tip: Install 'sshpass' to avoid entering the 'arch' password manually."
-        scp -P 2222 "${ssh_opts[@]}" "$setup_script" arch@127.0.0.1:/home/arch/setup.sh
+        scp -P "$SSH_PORT" "${ssh_opts[@]}" "$setup_script" arch@127.0.0.1:/home/arch/setup.sh
   fi
     echo "✅ setup.sh copied successfully to /home/arch/setup.sh"
     echo "🚀 You can now login to the VM and run: chmod +x ./setup.sh && ./setup.sh"
@@ -654,10 +687,10 @@ function run_vm() {
 
     echo "🚀 Starting RaVN VM (branch/commit: $ref)..."
     echo "   Login: arch / arch"
-    echo "   SSH: ssh arch@127.0.0.1 -p 2222 (or run: ravnvm --ssh or ssh ravnvm)"
+    echo "   SSH: ssh arch@127.0.0.1 -p ${SSH_PORT} (or run: ravnvm --ssh or ssh ravnvm)"
 
     # Run VM with SSH port forwarding
-    run_qemu_vm "$vm_disk" "${VM_MEMORY:-4G}" "${VM_CPUS:-2}" "hostfwd=tcp::2222-:22"
+    run_qemu_vm "$vm_disk" "${VM_MEMORY:-4G}" "${VM_CPUS:-2}" "hostfwd=tcp::${SSH_PORT}-:22"
 
     if [ "$persistent" != "true" ]; then
         rm -f -- "$vm_disk"
@@ -880,6 +913,7 @@ function show_menu() {
   echo -e "  ${GREEN}8${NC}  ${ICON_UI_GEAR}  Configure RAM and CPU"
   echo -e "  ${GREEN}9${NC}  ${ICON_DIAGNOSTIC_INFO}  Show RavnVM usage"
   echo -e "  ${GREEN}10${NC} ${ICON_UI_TERMINAL}  Connect to VM via SSH"
+  echo -e "  ${GREEN}11${NC} ${ICON_UI_GEAR}  Install SSH alias"
   echo -e "  ${GREEN}q${NC}  ${ICON_UI_CLOSE}  Exit"
   echo ""
   read -r -p "${LIGHT_GRAY}Selection:${NC} " MENU_CHOICE
@@ -971,7 +1005,49 @@ function run_custom_revision() {
 }
 
 function connect_ssh() {
-  ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null arch@127.0.0.1
+  ssh -p "$SSH_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null arch@127.0.0.1
+}
+
+function install_ssh_alias() {
+  local ssh_directory="$HOME/.ssh"
+  local ssh_config="$ssh_directory/config"
+  local temporary_config=""
+  local block_begin="# >>> RavnVM managed SSH alias >>>"
+  local block_end="# <<< RavnVM managed SSH alias <<<"
+
+  mkdir -p "$ssh_directory"
+  chmod 700 "$ssh_directory"
+  touch "$ssh_config"
+
+  temporary_config=$(mktemp "$ssh_directory/config.XXXXXX")
+  register_temporary_path "$temporary_config"
+
+  {
+    printf '%s\n' "$block_begin"
+    printf 'Host ravnvm\n'
+    printf '    HostName 127.0.0.1\n'
+    printf '    User arch\n'
+    printf '    Port %s\n' "$SSH_PORT"
+    printf '    StrictHostKeyChecking no\n'
+    printf '    UserKnownHostsFile /dev/null\n'
+    printf '%s\n' "$block_end"
+
+    awk -v block_begin="$block_begin" -v block_end="$block_end" '
+      $0 == block_begin { in_managed_block = 1; next }
+      $0 == block_end { in_managed_block = 0; next }
+      in_managed_block { next }
+      !started && $0 == "" { next }
+      { started = 1; lines[++count] = $0 }
+      END {
+        if (count > 0) print ""
+        for (line = 1; line <= count; line++) print lines[line]
+      }
+    ' "$ssh_config"
+  } > "$temporary_config"
+
+  chmod 600 "$temporary_config"
+  mv -- "$temporary_config" "$ssh_config"
+  print_success "SSH alias installed; connect with: ssh ravnvm"
 }
 
 function run_vm_command() {
@@ -1032,7 +1108,13 @@ function run_interactive_menu() {
         ;;
       10)
         if ! connect_ssh; then
-          print_error "Unable to connect to the running VM"
+          print_warn "SSH session ended; the VM may have stopped or become unavailable"
+        fi
+        press_enter_to_continue
+        ;;
+      11)
+        if ! install_ssh_alias; then
+          print_error "Unable to install the SSH alias"
         fi
         press_enter_to_continue
         ;;
@@ -1091,6 +1173,10 @@ while [ $# -gt 0 ]; do
         --check-deps)
             check_deps_only
             exit $?
+            ;;
+        --install-ssh-alias)
+            install_ssh_alias
+            exit 0
             ;;
         --ssh)
             connect_ssh

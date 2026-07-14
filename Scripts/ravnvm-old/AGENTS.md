@@ -16,7 +16,8 @@ installer pipeline.
 - **Interactive menu**: no-argument execution validates the environment, then
   exposes revision execution, storage, snapshots, resources, usage, and SSH.
 - **Direct CLI**: preserve `--persist`, `--list`, `--clean`, `--install-deps`,
-  `--check-deps`, `--ssh`, and `--help`, plus direct branch/commit arguments.
+  `--check-deps`, `--install-ssh-alias`, `--ssh`, and `--help`, plus direct
+  branch/commit arguments.
 - **VM defaults**: use `VM_MEMORY=4G` and `VM_CPUS=2` unless overridden for the
   current invocation or session.
 - **Repository source**: VM setup must clone or update the configured RaVN
@@ -44,6 +45,7 @@ The menu currently provides:
 8. Configure RAM and CPU for the current session.
 9. Show the shared RavnVM usage information.
 10. Connect to the running VM through SSH.
+11. Install the optional `ssh ravnvm` host alias.
 
 Missing dependencies must be handled before the normal menu and may offer only
 dependency installation or exit. Empty snapshots, failed cleanup, missing VMs,
@@ -70,6 +72,7 @@ Scripts/ravnvm/tests/menu.sh
 Scripts/ravnvm/tests/interrupt.sh
 Scripts/ravnvm/tests/snapshot.sh
 Scripts/ravnvm/tests/download.sh
+Scripts/ravnvm/tests/ssh.sh
 ```
 
 Also run `bash -n`, `shellcheck`, `shfmt`, and the repository pre-commit hook.

@@ -111,6 +111,7 @@ interactive menu. The menu is the friendly interface for the same VM engine:
 8  Configure RAM and CPU
 9  Show RavnVM usage
 10 Connect to VM via SSH
+11 Install SSH alias
 q  Exit
 ```
 
@@ -121,7 +122,8 @@ GitHub inside the VM; it does not provision from local working-tree changes.
 
 Option 8 changes RAM and CPU for the current process only. The defaults are
 `VM_MEMORY=4G` and `VM_CPUS=2`. Option 9 displays the same usage information as
-`ravnvm --help`, and option 10 connects to the running VM on SSH port 2222.
+`ravnvm --help`, option 10 connects to the running VM on SSH port 2222, and
+option 11 installs the optional `ssh ravnvm` host alias.
 
 The menu validates the host environment first and shows the RavnVM cache size,
 filesystem usage, free space, and a storage warning when usage reaches 80% or
@@ -158,6 +160,9 @@ ravnvm --check-deps
 
 # Install dependencies (Arch only)
 ravnvm --install-deps
+
+# Install the optional `ssh ravnvm` host alias
+ravnvm --install-ssh-alias
 ```
 
 ### Make interface
@@ -210,7 +215,8 @@ VM_QEMU_OVERRIDE="qemu-system-x86_64 -m 4G -smp 2 -enable-kvm -drive file=\$VM_D
 ## VM Details
 
 - **Login**: `arch` / `arch`
-- **SSH Access**: `ssh arch@localhost -p 2222`
+- **SSH Access**: `ssh arch@127.0.0.1 -p 2222` or `ravnvm --ssh`
+- **SSH Alias**: run `ravnvm --install-ssh-alias` once, then use `ssh ravnvm`
 - **Persistence**: Optional flag determines if changes are saved
 - **Cache Directory**: Uses XDG Base Directory specification (`$XDG_CACHE_HOME/ravnvm/`)
 - **Snapshots**: Stored in `$XDG_CACHE_HOME/ravnvm/snapshots/` (typically `~/.cache/ravnvm/snapshots/`)
