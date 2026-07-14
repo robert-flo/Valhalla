@@ -442,6 +442,7 @@ function get_snapshot_name() {
 
 function create_ravn_snapshot() {
     local ref="${1:-master}"
+    local setup_completed=""
     local snapshot_name
     snapshot_name=$(get_snapshot_name "$ref")
     local snapshot_path="$SNAPSHOTS_DIR/ravn-$snapshot_name.qcow2"
@@ -580,14 +581,29 @@ SETUP_EOF
     echo "🚀 You can now login to the VM and run: chmod +x ./setup.sh && ./setup.sh"
 
     # Wait for QEMU process to finish cleanly
-    wait "$qemu_pid"
+    if ! wait "$qemu_pid"; then
+        ACTIVE_QEMU_PID=""
+        print_error "The setup VM exited with an error; no snapshot was cached"
+        return 1
+  fi
     ACTIVE_QEMU_PID=""
+
+    echo ""
+    read -r -p "${LIGHT_GRAY}Did the RaVN setup complete successfully? [y/N]${NC} " setup_completed
+    if [[ ! $setup_completed =~ ^[Yy]$ ]]; then
+        print_error "Setup was not confirmed; no snapshot was cached"
+        return 1
+  fi
 
     echo ""
     echo "💾 Converting VM to snapshot..."
 
     # Convert temporary image to final snapshot
-    qemu-img convert -O qcow2 "$temp_image" "$snapshot_path"
+    if ! qemu-img convert -O qcow2 "$temp_image" "$snapshot_path"; then
+        rm -f -- "$snapshot_path"
+        print_error "Unable to create the revision snapshot"
+        return 1
+  fi
 
     # Cleanup
     rm -f "$temp_image" "$setup_script"
@@ -608,7 +624,9 @@ function run_vm() {
     # Ensure snapshot exists
     if [ ! -f "$snapshot_path" ]; then
         echo "📸 Snapshot for '$ref' not found, creating it..."
-        create_ravn_snapshot "$ref"
+        if ! create_ravn_snapshot "$ref"; then
+            return 1
+    fi
   fi
 
     local vm_disk
