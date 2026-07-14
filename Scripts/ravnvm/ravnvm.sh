@@ -182,7 +182,10 @@ function normalize_repository_url() {
     local repository="$1"
 
     if [[ $repository =~ ^[^/:]+/[^/:]+$ ]]; then
-        repository="https://github.com/${repository}.git"
+        if [[ $repository != *.git ]]; then
+            repository="${repository}.git"
+    fi
+        repository="https://github.com/${repository}"
   elif   [[ $repository =~ ^https://github\.com/[^/]+/[^/]+$ ]]; then
         repository="${repository}.git"
   fi

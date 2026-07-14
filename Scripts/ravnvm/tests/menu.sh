@@ -65,6 +65,8 @@ assert_contains "$empty_revision_output" "A branch or commit is required"
 
 help_output=$("$RAVNVM_SCRIPT" --help)
 assert_contains "$help_output" "Usage: ravnvm"
+repo_suffix_help=$("$RAVNVM_SCRIPT" --repo basecamp/omarchy.git --help)
+assert_contains "$repo_suffix_help" "Usage: ravnvm"
 
 snapshot_output=$("$RAVNVM_SCRIPT" --list)
 assert_contains "$snapshot_output" "Available RaVN snapshots"
