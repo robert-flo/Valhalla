@@ -62,6 +62,10 @@ assert_contains "$help_output" "Usage: ravnvm [OPTIONS] [BRANCH/COMMIT]"
 list_output=$("$RAVNVM_SCRIPT" --list)
 assert_contains "$list_output" "master"
 
+storage_output=$("$RAVNVM_SCRIPT" --storage)
+assert_contains "$storage_output" "VM cache:"
+assert_contains "$storage_output" "Disk:"
+
 touch "$XDG_CACHE_HOME/ravnvm/snapshots/ravn-dev-ef260e9aa3c6.qcow2"
 ephemeral_output=$(VM_QEMU_OVERRIDE=true "$RAVNVM_SCRIPT" dev 2>&1)
 assert_contains "$ephemeral_output" "non-persistent mode"

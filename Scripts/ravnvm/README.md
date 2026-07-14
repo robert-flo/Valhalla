@@ -12,6 +12,7 @@ RavnVM is a streamlined development tool that guides RaVN setup in a virtual mac
   - [Usage](#usage)
     - [Interactive menu](#interactive-menu)
     - [Basic Commands](#basic-commands)
+    - [Make interface](#make-interface)
     - [Environment Variables](#environment-variables)
   - [VM Details](#vm-details)
   - [Troubleshooting](#troubleshooting)
@@ -147,12 +148,44 @@ ravnvm --list
 # Clean snapshots and temporary data while preserving the base image
 ravnvm --clean
 
+# Show cache and filesystem storage usage
+ravnvm --storage
+
 # Check dependencies
 ravnvm --check-deps
 
 # Install dependencies (Arch only)
 ravnvm --install-deps
 ```
+
+### Make interface
+
+The repository Makefile exposes the same RavnVM engine through development
+targets:
+
+```bash
+# Run the current checkout revision, ephemerally or persistently
+make dev-vm
+make dev-vm-persist REF=dev
+
+# Forward session resources and QEMU overrides
+make dev-vm REF=feature/test VM_MEMORY=8G VM_CPUS=4
+make dev-vm VM_EXTRA_ARGS=-nographic VM_QEMU_OVERRIDE=custom-qemu
+
+# Inspect and administer RavnVM
+make dev-vm-list
+make dev-vm-clean
+make dev-vm-setup
+make dev-vm-storage
+make dev-vm-size # Compatibility alias for dev-vm-storage
+make dev-vm-ssh
+
+# Preview commands without starting or modifying a VM
+make dev-vm REF=dev DRY_RUN=1
+```
+
+Run `make help` to discover all targets. The Make recipes delegate to
+`Scripts/ravnvm/ravnvm.sh`; they do not implement a second VM lifecycle.
 
 ### Environment Variables
 
