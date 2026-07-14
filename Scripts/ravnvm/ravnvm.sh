@@ -991,13 +991,11 @@ function configure_vm_resources() {
   if ! [[ $VM_CPUS =~ ^[1-9][0-9]*$ ]]; then
     print_error "CPU count must be a positive integer"
     VM_CPUS="$current_cpus"
-    press_enter_to_continue
     return 1
   fi
 
   export VM_MEMORY VM_CPUS
   print_success "Session resources: ${VM_MEMORY} RAM, ${VM_CPUS} CPUs"
-  press_enter_to_continue
 }
 
 function run_selected_revision() {
