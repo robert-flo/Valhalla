@@ -15,6 +15,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Added
 
+- feat: coordinate RaVN install everything ([#78](https://github.com/robert-flo/Valhalla/pull/78)). <!-- changelog-pr:78 -->
+
 - feat: add conservative RaVN applications ([#77](https://github.com/robert-flo/Valhalla/pull/77)). <!-- changelog-pr:77 -->
 
 - feat: add RaVN configuration overlay ([#76](https://github.com/robert-flo/Valhalla/pull/76)). <!-- changelog-pr:76 -->
