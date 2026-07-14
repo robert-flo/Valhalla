@@ -759,7 +759,7 @@ function run_vm() {
 function list_snapshots() {
     local snapshots=""
 
-    print_section "Available RaVN snapshots"
+    echo "${ICON_SNAPSHOT} Available RaVN snapshots:"
     if [ -d "$SNAPSHOTS_DIR" ]; then
         snapshots=$(find "$SNAPSHOTS_DIR" -name "ravn-*.qcow2" -exec basename {} \; |
             sed 's/^ravn-//' | sed 's/\.qcow2$//' | sort)
@@ -767,10 +767,10 @@ function list_snapshots() {
         if [ -n "$snapshots" ]; then
             printf '%s\n' "$snapshots"
     else
-            print_info "No snapshots found"
+            echo "No snapshots found"
     fi
   else
-        print_info "No snapshots found"
+        echo "No snapshots found"
   fi
 }
 
@@ -804,7 +804,6 @@ function clean_cache() {
 # └──────────────────────────────────────────────────────────────────────────────┘
 
 function press_enter_to_continue() {
-  printf '\n'
   read -r -p "Press Enter to continue..." _
 }
 
@@ -1189,8 +1188,8 @@ function run_interactive_menu() {
         press_enter_to_continue
         ;;
       6)
-        printf '\n'
         clean_cache || true
+        printf '\n'
         press_enter_to_continue
         ;;
       7)
