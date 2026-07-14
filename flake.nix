@@ -17,36 +17,6 @@
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f system);
     in
     {
-      apps = forAllSystems (
-        system:
-        let
-          pkgs = nixpkgs.legacyPackages.${system};
-          ravnvm = import ./Scripts/ravnvm { inherit pkgs; };
-        in
-        {
-          default = {
-            type = "app";
-            program = "${ravnvm.defaultPackage}/bin/ravnvm";
-          };
-          ravnvm = {
-            type = "app";
-            program = "${ravnvm.defaultPackage}/bin/ravnvm";
-          };
-        }
-      );
-
-      packages = forAllSystems (
-        system:
-        let
-          pkgs = nixpkgs.legacyPackages.${system};
-          ravnvm = import ./Scripts/ravnvm { inherit pkgs; };
-        in
-        {
-          default = ravnvm.defaultPackage;
-          ravnvm = ravnvm.defaultPackage;
-        }
-      );
-
       devShells = forAllSystems (
         system:
         let

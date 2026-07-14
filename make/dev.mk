@@ -1,4 +1,4 @@
-RAVNVM ?= $(SCRIPTS_DIR)/ravnvm-old/ravnvm.sh
+RAVNVM ?= $(SCRIPTS_DIR)/ravnvm/ravnvm.sh
 GIT ?= git
 REF ?= $(shell ref=$$($(GIT) branch --show-current 2>/dev/null); \
 	if [ -n "$$ref" ]; then printf '%s' "$$ref"; \

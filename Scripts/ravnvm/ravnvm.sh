@@ -1,483 +1,820 @@
 #!/usr/bin/env bash
 
-set -Eeuo pipefail
+# shellcheck disable=SC1091
+if ! source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../global_fn.sh"; then
+    echo "Error: unable to source global_fn.sh..." >&2
+    exit 1
+fi
 
-readonly CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/ravnvm"
-readonly BASE_IMAGE="$CACHE_DIR/archbase.qcow2"
-readonly SNAPSHOTS_DIR="$CACHE_DIR/snapshots"
-readonly RAVN_REPO="${RAVN_REPO:-https://github.com/robert-flo/RaVN.git}"
-readonly ARCH_IMAGE_URL="${RAVNVM_ARCH_IMAGE_URL:-https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-basic.qcow2}"
-readonly SSH_PORT="${RAVNVM_SSH_PORT:-2222}"
-readonly DEFAULT_MEMORY="4G"
-readonly DEFAULT_CPUS="2"
+# ╭──────────────────────────────────────────────────────────────────────────────╮
+# │                                                                              │
+# │                 RavnVM — QEMU/KVM Development Environment                   │
+# │                                                                              │
+# │       Development tool for testing RaVN branches and commits in VMs         │
+# │                                                                              │
+# ╰──────────────────────────────────────────────────────────────────────────────╯
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                         RavnVM — Documentation                              ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+#
+# USAGE
+#   ravnvm              — Validate the environment and open the menu
+#   ravnvm <revision>   — Run a branch or commit directly
+#   ravnvm --persist    — Run with persistent VM changes
+#
+# DIRECT OPTIONS
+#   --list              — List cached snapshots
+#   --clean             — Remove cached VM state
+#   --check-deps        — Check host dependencies
+#   --install-deps      — Install host dependencies on Arch Linux
+#   --install-ssh-alias — Configure the `ssh ravnvm` host alias
+#   --help              — Show command help
 
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[0;33m'
-readonly NC='\033[0m'
-
-readonly -a REQUIRED_COMMANDS=(qemu-system-x86_64 qemu-img curl git ssh ssh-keyscan scp sha256sum)
-readonly -a ARCH_PACKAGES=(qemu-desktop curl git openssh)
+set -e
 
 ACTIVE_QEMU_PID=""
 TEMPORARY_PATHS=()
+VM_LOCK_FD=""
 
-print_error() {
-  printf "${RED}Error:${NC} %s\n" "$*" >&2
-}
-
-print_warning() {
-  printf "${YELLOW}Warning:${NC} %s\n" "$*" >&2
-}
-
-print_success() {
-  printf "${GREEN}%s${NC}\n" "$*"
-}
-
-cleanup_runtime() {
+function cleanup_runtime() {
   local temporary_path=""
 
   if [[ -n $ACTIVE_QEMU_PID ]] && kill -0 "$ACTIVE_QEMU_PID" 2> /dev/null; then
     kill "$ACTIVE_QEMU_PID" 2> /dev/null || true
     wait "$ACTIVE_QEMU_PID" 2> /dev/null || true
   fi
+  ACTIVE_QEMU_PID=""
+
   for temporary_path in "${TEMPORARY_PATHS[@]}"; do
-    rm -rf -- "$temporary_path"
+    rm -f -- "$temporary_path"
   done
-  rm -f -- "$BASE_IMAGE.part"
+  TEMPORARY_PATHS=()
 }
 
-handle_interrupt() {
-  print_warning "RavnVM interrupted; temporary state was removed and the cached base was preserved"
+function handle_interrupt() {
+  print_warn "RavnVM interrupted; temporary state was removed safely"
   exit 130
 }
 
-register_temporary_path() {
+function register_temporary_path() {
   TEMPORARY_PATHS+=("$1")
+}
+
+function acquire_vm_lock() {
+  exec {VM_LOCK_FD}> "$CACHE_DIR/session.lock"
+  if ! flock -n "$VM_LOCK_FD"; then
+    exec {VM_LOCK_FD}>&-
+    VM_LOCK_FD=""
+    print_error "Another RavnVM session is already active; close it before starting a new VM"
+    return 1
+  fi
+}
+
+function release_vm_lock() {
+  if [[ -n $VM_LOCK_FD ]]; then
+    flock -u "$VM_LOCK_FD"
+    exec {VM_LOCK_FD}>&-
+    VM_LOCK_FD=""
+  fi
 }
 
 trap handle_interrupt INT TERM
 trap cleanup_runtime EXIT
 
-print_usage() {
-  cat << 'USAGE'
-RavnVM - isolated VM tool for RaVN contributors
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Configuration                                                                │
+# └──────────────────────────────────────────────────────────────────────────────┘
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/ravnvm"
+BASE_IMAGE="$CACHE_DIR/archbase.qcow2"
+SNAPSHOTS_DIR="$CACHE_DIR/snapshots"
+RAVN_REPO="https://github.com/robert-flo/RaVN.git"
+SSH_PORT=2222
+SSH_READY_TIMEOUT="${RAVNVM_SSH_READY_TIMEOUT:-120}"
+if [[ ! $SSH_READY_TIMEOUT =~ ^[0-9]+$ ]]; then
+    SSH_READY_TIMEOUT=120
+fi
+# Required packages for Arch Linux
+ARCH_PACKAGES=(
+    "qemu-desktop"
+    "curl"
+    "python"
+    "git"
+)
 
-Usage: ravnvm [OPTIONS] [BRANCH/COMMIT]
+# Create cache directories
+mkdir -p "$CACHE_DIR" "$SNAPSHOTS_DIR"
 
-Arguments:
-  BRANCH/COMMIT            Git branch or commit hash (default: master)
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Environment & Dependencies                                                   │
+# └──────────────────────────────────────────────────────────────────────────────┘
 
-Options:
-  --persist                Retain changes in the revision snapshot
-  --list                   List available revision snapshots
-  --clean                  Remove snapshots and temporary VM data
-  --storage                Show cache and filesystem storage usage
-  --install-deps           Install required packages on Arch Linux
-  --check-deps             Check host dependencies
-  --ssh                    Connect to the running VM
-  --help                   Show this help
-
-Environment variables:
-  VM_MEMORY=4G             VM memory (default: 4G)
-  VM_CPUS=2                VM CPU count (default: 2)
-  VM_EXTRA_ARGS="args"      Additional QEMU arguments
-  VM_QEMU_OVERRIDE="cmd"    Replacement QEMU command; $VM_DISK is substituted
-  RAVN_REPO="url"           RaVN Git repository cloned inside the VM
-USAGE
-}
-
-detect_os() {
-  local id=""
-  local id_like=""
-
-  if [[ -r /etc/os-release ]]; then
-    # shellcheck source=/dev/null
-    source /etc/os-release
-    id="${ID:-}"
-    id_like="${ID_LIKE:-}"
-  fi
-
-  if [[ $id == nixos ]] || command -v nixos-version > /dev/null 2>&1; then
-    printf 'nixos\n'
-  elif [[ $id == arch || $id_like == *arch* ]] || command -v pacman > /dev/null 2>&1; then
-    printf 'arch\n'
+function detect_os() {
+    if [ -f /etc/os-release ]; then
+        # shellcheck source=/dev/null
+        . /etc/os-release
+        if [[ $ID == "nixos" ]]; then
+            echo "nixos"
+    elif     [[ $ID == "arch" ]] || [[ ${ID_LIKE:-} == *arch* ]] || command -v pacman > /dev/null 2>&1; then
+            echo "arch"
+    else
+            echo "unknown"
+    fi
+  elif   command -v nixos-version > /dev/null 2>&1; then
+        echo "nixos"
+  elif   command -v pacman > /dev/null 2>&1; then
+        echo "arch"
   else
-    printf 'unknown\n'
+        echo "unknown"
   fi
 }
 
-missing_commands() {
-  local command_name=""
-
-  for command_name in "${REQUIRED_COMMANDS[@]}"; do
-    command -v "$command_name" > /dev/null 2>&1 || printf '%s\n' "$command_name"
-  done
+function print_usage() {
+    echo "RavnVM - Simplified VM tool for RaVN contributors"
+    echo "Supports: Arch Linux, Arch-based distros, NixOS"
+    echo ""
+    echo "Usage: ravnvm [OPTIONS] [BRANCH/COMMIT]"
+    echo ""
+    echo "Arguments:"
+    echo "  BRANCH/COMMIT            Git branch or commit hash (default: master)"
+    echo ""
+    echo "Options:"
+    echo "  --persist               Make VM changes persistent"
+    echo "  --list                  List available snapshots"
+    echo "  --clean                 Clean all cached data"
+    echo "  --install-deps          Install required dependencies (Arch only)"
+    echo "  --check-deps            Check if dependencies are installed"
+    echo "  --install-ssh-alias     Configure the 'ssh ravnvm' host alias"
+    echo "  --ssh                   Connect to the running VM via SSH"
+    echo "  --help                  Show this help"
+    echo ""
+    echo "Environment Variables:"
+    echo "  VM_MEMORY=4G            Set VM memory (default: 4G)"
+    echo "  VM_CPUS=2               Set VM CPU count (default: 2)"
+    echo "  VM_EXTRA_ARGS=\"args\"     Add extra QEMU arguments"
+    echo "  VM_QEMU_OVERRIDE=\"cmd\"   Override entire QEMU command (\$VM_DISK substituted)"
+    echo ""
+    echo "Examples:"
+    echo "  ravnvm                  # Run master branch"
+    echo "  ravnvm --persist        # Run master branch (persistent)"
+    echo "  ravnvm feature-branch   # Run specific branch"
+    echo "  ravnvm abc123           # Run specific commit"
+    echo "  ravnvm --persist dev    # Run dev branch with persistence"
+    echo ""
+    echo "OS-specific notes:"
+    echo "  Arch Linux: Missing packages will be auto-detected and offered for install"
+    echo "  NixOS: automatically installs dependencies"
 }
 
-check_dependencies() {
-  local os=""
-  local missing=""
+function check_root() {
+    if [ "$EUID" -eq 0 ]; then
+        echo "❌ Please don't run this script as root"
+        local os
+        os=$(detect_os)
+        if [[ "$os" == "arch" ]]; then
+            echo "   Use --install-deps to install dependencies with sudo"
+    fi
+        exit 1
+  fi
+}
 
-  os=$(detect_os)
-  missing=$(missing_commands)
-  if [[ -n $missing ]]; then
-    print_error "Missing required commands: $(tr '\n' ' ' <<< "$missing" | sed 's/ $//')"
+function check_dependencies() {
+    local os
+    os=$(detect_os)
+
     case "$os" in
-      arch)
-        printf 'Install them with: ravnvm --install-deps\n' >&2
-        ;;
-      nixos)
-        printf 'Use a Nix shell containing qemu, curl, git, and openssh.\n' >&2
-        ;;
-      *)
-        printf 'Install QEMU, curl, Git, and OpenSSH with your package manager.\n' >&2
-        ;;
-    esac
-    return 1
-  fi
-
-  if [[ ! -r /dev/kvm ]]; then
-    print_warning "KVM is unavailable; QEMU will run without hardware acceleration"
-  fi
-
-  return 0
+        "nixos")
+            check_nixos_dependencies
+            ;;
+        "arch")
+            check_arch_dependencies
+            ;;
+        *)
+            echo "⚠️  Unsupported OS. This script supports Arch Linux and NixOS."
+            check_common_commands
+            ;;
+  esac
 }
 
-check_dependencies_only() {
-  local os=""
+function check_common_commands() {
+    local missing_commands=()
 
-  os=$(detect_os)
-  printf 'Detected OS: %s\n' "$os"
-  check_dependencies
-  print_success "All required RavnVM commands are available"
-}
-
-install_arch_dependencies() {
-  if [[ $(detect_os) != arch ]]; then
-    print_error "--install-deps is supported only on Arch Linux"
-    return 1
-  fi
-
-  sudo pacman -Sy --needed "${ARCH_PACKAGES[@]}"
-  print_success "RavnVM dependencies installed"
-  if getent group kvm > /dev/null 2>&1 && [[ ! -r /dev/kvm ]]; then
-    print_warning "Add your user to the kvm group, then log in again, to enable acceleration"
-  fi
-}
-
-ensure_cache() {
-  mkdir -p "$CACHE_DIR" "$SNAPSHOTS_DIR"
-}
-
-snapshot_id_for() {
-  local revision="$1"
-  local slug="${revision//[^a-zA-Z0-9._-]/_}"
-  local digest=""
-
-  slug="${slug:0:64}"
-  digest=$(printf '%s' "$revision" | sha256sum | cut -c 1-12)
-  printf '%s-%s\n' "$slug" "$digest"
-}
-
-snapshot_path_for() {
-  local revision="$1"
-  printf '%s/ravn-%s.qcow2\n' "$SNAPSHOTS_DIR" "$(snapshot_id_for "$revision")"
-}
-
-list_snapshots() {
-  local snapshots=""
-
-  ensure_cache
-  printf 'Available RaVN snapshots:\n'
-  snapshots=$(find "$SNAPSHOTS_DIR" -type f -name 'ravn-*.qcow2' -printf '%f\n' |
-    sed -e 's/^ravn-//' -e 's/\.qcow2$//' | sort)
-  if [[ -n $snapshots ]]; then
-    printf '%s\n' "$snapshots"
-  else
-    printf 'No snapshots found\n'
-  fi
-}
-
-clean_cache() {
-  if ! ensure_cache; then
-    print_error "Unable to prepare the RavnVM cache"
-    return 1
-  fi
-  printf 'Cleaning RavnVM cache while preserving the base image...\n'
-  if ! find "$CACHE_DIR" -mindepth 1 -maxdepth 1 ! -name 'archbase.qcow2' -exec rm -rf -- {} +; then
-    print_error "Unable to clean RavnVM cache"
-    return 1
-  fi
-  if ! mkdir -p "$SNAPSHOTS_DIR"; then
-    print_error "Unable to recreate the snapshots directory"
-    return 1
-  fi
-  if [[ -f $BASE_IMAGE ]]; then
-    print_success "Cache cleaned; base image preserved"
-  else
-    print_success "Cache cleaned"
-  fi
-}
-
-download_base_image() {
-  ensure_cache
-  if [[ -f $BASE_IMAGE ]]; then
-    return 0
-  fi
-
-  printf 'Downloading the Arch Linux base image...\n'
-  curl --fail --location "$ARCH_IMAGE_URL" --output "$BASE_IMAGE.part"
-  mv "$BASE_IMAGE.part" "$BASE_IMAGE"
-  print_success "Base image downloaded"
-}
-
-qemu_command() {
-  local vm_disk="$1"
-  local memory="$2"
-  local cpus="$3"
-  local execution_mode="${4:-foreground}"
-  local -a args=(
-    -m "$memory"
-    -smp "$cpus"
-    -drive "file=$vm_disk,format=qcow2,if=virtio"
-    -device "virtio-vga-gl"
-    -display "gtk,gl=on,grab-on-hover=on"
-    -boot "menu=on"
-  )
-  local -a extra_args=()
-
-  if [[ -n ${VM_QEMU_OVERRIDE:-} ]]; then
-    local override="${VM_QEMU_OVERRIDE//\$VM_DISK/$vm_disk}"
-    printf 'Using the configured QEMU override...\n'
-    if [[ $execution_mode == background ]]; then
-      bash -c "$override" &
-      ACTIVE_QEMU_PID=$!
-      return 0
+    for cmd in qemu-system-x86_64 qemu-img curl git; do
+        if ! command -v "$cmd" > /dev/null 2>&1; then
+            missing_commands+=("$cmd")
     fi
-    bash -c "$override"
-    return
-  fi
-
-  if [[ -r /dev/kvm ]]; then
-    args+=(-enable-kvm -cpu host)
-  else
-    args+=(-cpu qemu64)
-  fi
-
-  args+=(-device "virtio-net,netdev=net0" -netdev "user,id=net0,hostfwd=tcp::${SSH_PORT}-:22")
-
-  if [[ -n ${VM_EXTRA_ARGS:-} ]]; then
-    read -r -a extra_args <<< "$VM_EXTRA_ARGS"
-    args+=("${extra_args[@]}")
-  fi
-
-  if [[ $execution_mode == background ]]; then
-    qemu-system-x86_64 "${args[@]}" 2> "$CACHE_DIR/qemu.log" &
-    ACTIVE_QEMU_PID=$!
-    return 0
-  fi
-
-  if ! qemu-system-x86_64 "${args[@]}" 2> "$CACHE_DIR/qemu.log"; then
-    print_error "QEMU failed; see $CACHE_DIR/qemu.log"
-    return 1
-  fi
-}
-
-write_guest_setup() {
-  local destination="$1"
-
-  cat > "$destination" << 'GUEST_SETUP'
-#!/usr/bin/env bash
-set -Eeuo pipefail
-
-repo_url="$1"
-revision="$2"
-checkout_dir="$HOME/RaVN"
-
-if [[ -d "$checkout_dir/.git" ]]; then
-  git -C "$checkout_dir" remote set-url origin "$repo_url"
-  git -C "$checkout_dir" fetch --prune origin
-else
-  git clone "$repo_url" "$checkout_dir"
-fi
-
-git -C "$checkout_dir" fetch origin "$revision" || true
-if git -C "$checkout_dir" rev-parse --verify --quiet "origin/$revision" > /dev/null; then
-  git -C "$checkout_dir" checkout --force -B "$revision" "origin/$revision"
-else
-  git -C "$checkout_dir" checkout --force "$revision"
-fi
-
-cd "$checkout_dir/Scripts"
-./install.sh
-GUEST_SETUP
-  chmod +x "$destination"
-}
-
-copy_setup_when_ready() {
-  local qemu_pid="$1"
-  local setup_script="$2"
-  local attempt=0
-  local -a ssh_options=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
-
-  for ((attempt = 1; attempt <= 120; attempt++)); do
-    if ! kill -0 "$qemu_pid" 2> /dev/null; then
-      print_error "The setup VM stopped before SSH became available"
-      return 1
-    fi
-    if ssh-keyscan -p "$SSH_PORT" 127.0.0.1 2> /dev/null | grep -q 'ssh-'; then
-      scp -P "$SSH_PORT" "${ssh_options[@]}" "$setup_script" arch@127.0.0.1:/home/arch/setup.sh
-      return 0
-    fi
-    sleep 1
   done
 
-  print_error "Timed out waiting for the setup VM SSH service"
-  return 1
+    if ! command -v python3 > /dev/null 2>&1 && ! command -v python > /dev/null 2>&1; then
+        missing_commands+=("python")
+  fi
+
+    if [ ${#missing_commands[@]} -gt 0 ]; then
+        echo "❌ Missing required commands: ${missing_commands[*]}"
+        echo "   Please ensure qemu, curl, python, and git are installed."
+        return 1
+  fi
+
+    return 0
 }
 
-create_snapshot() {
-  local revision="$1"
-  local snapshot_path=""
-  local temporary_disk=""
-  local setup_script=""
-  local setup_completed=""
-  local qemu_pid=""
+function check_nixos_dependencies() {
+    local missing_commands=()
 
-  snapshot_path=$(snapshot_path_for "$revision")
-  [[ -f $snapshot_path ]] && return 0
+    # Check for required commands
+    for cmd in qemu-system-x86_64 qemu-img curl git; do
+        if ! command -v "$cmd" > /dev/null 2>&1; then
+            missing_commands+=("$cmd")
+    fi
+  done
 
-  download_base_image
-  temporary_disk=$(mktemp -p "$CACHE_DIR" 'setup.XXXXXX.qcow2')
-  setup_script=$(mktemp -p "$CACHE_DIR" 'setup.XXXXXX.sh')
-  register_temporary_path "$temporary_disk"
-  register_temporary_path "$setup_script"
-  qemu-img create -f qcow2 -F qcow2 -b "$BASE_IMAGE" "$temporary_disk"
-  write_guest_setup "$setup_script"
-
-  printf 'Creating the RaVN snapshot for %s...\n' "$revision"
-  printf 'After login, run: ./setup.sh %q %q; then sudo poweroff\n' "$RAVN_REPO" "$revision"
-  qemu_command "$temporary_disk" "${VM_MEMORY:-$DEFAULT_MEMORY}" "${VM_CPUS:-$DEFAULT_CPUS}" background
-  qemu_pid="$ACTIVE_QEMU_PID"
-
-  if ! copy_setup_when_ready "$qemu_pid" "$setup_script"; then
-    kill "$qemu_pid" 2> /dev/null || true
-    wait "$qemu_pid" 2> /dev/null || true
-    ACTIVE_QEMU_PID=""
-    return 1
+    if ! command -v python3 > /dev/null 2>&1 && ! command -v python > /dev/null 2>&1; then
+        missing_commands+=("python")
   fi
 
-  if ! wait "$qemu_pid"; then
-    ACTIVE_QEMU_PID=""
-    print_error "The setup VM exited with an error; no snapshot was cached"
-    return 1
-  fi
-  ACTIVE_QEMU_PID=""
-
-  if ! read -r -p "Did RaVN setup complete successfully inside the VM? [y/N] " setup_completed ||
-    [[ ! $setup_completed =~ ^[Yy]$ ]]; then
-    print_error "Setup was not confirmed; no revision snapshot was cached"
-    return 1
+    if [ ${#missing_commands[@]} -gt 0 ]; then
+        echo "❌ Missing required commands: ${missing_commands[*]}"
+        echo ""
+        echo "On NixOS, you can:"
+        echo "  1. Use nix-shell: nix-shell -p qemu curl python3 git"
+        echo "  2. Add to your configuration.nix: environment.systemPackages = with pkgs; [ qemu curl python3 git ];"
+        echo "  3. Install temporarily: nix-env -iA nixpkgs.qemu nixpkgs.curl nixpkgs.python3 nixpkgs.git"
+        return 1
   fi
 
-  if ! qemu-img convert -O qcow2 "$temporary_disk" "$snapshot_path"; then
-    rm -f "$snapshot_path"
-    print_error "Unable to create the revision snapshot"
-    return 1
+    # Check if KVM is available
+    if [ ! -r /dev/kvm ]; then
+        echo "⚠️  KVM not available. VM will run slower."
+        echo "   On NixOS, ensure virtualisation.libvirtd.enable = true; in configuration.nix"
+        echo "   Or add your user to the kvm group and rebuild."
   fi
-  rm -f "$temporary_disk" "$setup_script"
-  TEMPORARY_PATHS=()
-  print_success "Snapshot created for $revision"
+
+    return 0
 }
 
-run_vm() {
-  local revision="$1"
-  local persistent="$2"
-  local snapshot_path=""
-  local vm_disk=""
-  local status=0
+function check_arch_dependencies() {
+    local missing_packages=()
 
-  snapshot_path=$(snapshot_path_for "$revision")
-  create_snapshot "$revision"
+    for package in "${ARCH_PACKAGES[@]}"; do
+        if ! pacman -Q "$package" &> /dev/null; then
+            missing_packages+=("$package")
+    fi
+  done
 
-  if [[ $persistent == true ]]; then
-    printf 'Running in persistent mode; changes will be retained.\n'
-    vm_disk="$snapshot_path"
+    if [ ${#missing_packages[@]} -gt 0 ]; then
+        echo "❌ Missing required packages: ${missing_packages[*]}"
+        echo ""
+        read -p "Would you like to install them now? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            install_arch_packages "${missing_packages[@]}"
+    else
+            echo "   You can install them manually with: sudo pacman -S ${missing_packages[*]}"
+            return 1
+    fi
+  fi
+
+    # Check if KVM is available
+    if [ ! -r /dev/kvm ]; then
+        echo "⚠️  KVM not available. VM will run slower."
+        echo "   Make sure your user is in the 'kvm' group: sudo usermod -a -G kvm $USER"
+        echo "   Then logout and login again."
+  fi
+
+    return 0
+}
+
+function install_arch_packages() {
+    local packages=("$@")
+
+    echo "📦 Installing missing packages: ${packages[*]}"
+
+    # Update package database
+    echo "🔄 Updating package database..."
+    sudo pacman -Sy
+
+    # Install required packages
+    echo "📥 Installing packages..."
+    sudo pacman -S --needed "${packages[@]}"
+
+    # Add user to kvm group if it exists and we installed qemu
+    if [[ " ${packages[*]} " =~ " qemu-desktop " ]] && getent group kvm > /dev/null; then
+        echo "👥 Adding user to kvm group..."
+        sudo usermod -a -G kvm "$USER"
+        echo "⚠️  Please logout and login again for group changes to take effect"
+  fi
+
+    echo "✅ Packages installed successfully"
+}
+
+function install_all_arch_dependencies() {
+    local os
+    os=$(detect_os)
+
+    if [[ "$os" != "arch" ]]; then
+        echo "❌ --install-deps is only supported on Arch Linux"
+        echo "   Current OS: $os"
+        exit 1
+  fi
+
+    echo "📦 Installing all RavnVM dependencies..."
+    install_arch_packages "${ARCH_PACKAGES[@]}"
+    echo "💡 You may need to reboot or logout/login for all changes to take effect"
+}
+
+function check_deps_only() {
+    local os
+    os=$(detect_os)
+    echo "🔍 Checking RavnVM dependencies..."
+    echo "   Detected OS: $os"
+
+    if check_dependencies; then
+        echo "✅ All dependencies are installed"
+
+        # Check additional system info
+        echo ""
+        echo "📊 System Information:"
+        echo "   CPU cores: $(nproc)"
+        echo "   Memory: $(free -h | awk '/^Mem:/ {print $2}' 2> /dev/null || echo "Unknown")"
+        echo "   KVM available: $([ -r /dev/kvm ] && echo "Yes" || echo "No")"
+
+        if command -v qemu-system-x86_64 > /dev/null 2>&1; then
+            echo "   QEMU version: $(qemu-system-x86_64 --version | head -1)"
+    fi
+
+        return 0
   else
-    printf 'Running in non-persistent mode; changes will be discarded.\n'
-    vm_disk=$(mktemp -p "$CACHE_DIR" 'overlay.XXXXXX.qcow2')
-    register_temporary_path "$vm_disk"
-    qemu-img create -f qcow2 -F qcow2 -b "$snapshot_path" "$vm_disk"
+        return 1
   fi
-
-  printf 'Starting RaVN VM (branch/commit: %s)...\n' "$revision"
-  printf 'Login: arch / arch; SSH: ssh arch@127.0.0.1 -p %s\n' "$SSH_PORT"
-  qemu_command "$vm_disk" "${VM_MEMORY:-$DEFAULT_MEMORY}" "${VM_CPUS:-$DEFAULT_CPUS}" || status=$?
-
-  if [[ $persistent != true ]]; then
-    rm -f "$vm_disk"
-    TEMPORARY_PATHS=()
-  fi
-  return "$status"
 }
 
-connect_ssh() {
-  ssh -p "$SSH_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null arch@127.0.0.1
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ QEMU Runtime                                                                 │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+function get_qemu_command() {
+    # Try to find qemu-system-x86_64 in common locations
+    if command -v qemu-system-x86_64 > /dev/null 2>&1; then
+        echo "qemu-system-x86_64"
+  elif   [ -x "/usr/bin/qemu-system-x86_64" ]; then
+        echo "/usr/bin/qemu-system-x86_64"
+  elif   [ -x "/usr/local/bin/qemu-system-x86_64" ]; then
+        echo "/usr/local/bin/qemu-system-x86_64"
+  else
+        echo "qemu-system-x86_64"  # fallback
+  fi
 }
 
-run_revision() {
-  local revision="$1"
-  local persistent="$2"
+function get_python_command() {
+    # Try to find python in common locations
+    if command -v python3 > /dev/null 2>&1; then
+        echo "python3"
+  elif   command -v python > /dev/null 2>&1; then
+        echo "python"
+  else
+        echo "python3"  # fallback
+  fi
+}
 
-  if ((EUID == 0)); then
-    print_error "Do not run RavnVM as root"
+function run_qemu_vm() {
+    local vm_disk="$1"
+    local memory="${2:-4G}"
+    local cpus="${3:-2}"
+    local extra_args="${4:-}"
+    local execution_mode="${5:-foreground}"
+    local qemu_cmd
+    qemu_cmd=$(get_qemu_command)
+
+    # Check if user wants to override QEMU command entirely
+    if [ -n "${VM_QEMU_OVERRIDE:-}" ]; then
+        echo "🔧 Using custom QEMU command override..."
+        # Substitute $VM_DISK in the override command
+        local qemu_override_cmd
+        qemu_override_cmd=${VM_QEMU_OVERRIDE//\$VM_DISK/$vm_disk}
+        if [[ $execution_mode == "background" ]]; then
+            bash -c "exec $qemu_override_cmd" &
+            ACTIVE_QEMU_PID=$!
+            return 0
+    fi
+        eval "$qemu_override_cmd"
+  else
+        # Build QEMU command arguments
+        local qemu_args=(
+            -m "$memory"
+            -smp "$cpus"
+            -drive "file=$vm_disk,format=qcow2,if=virtio"
+            -device virtio-vga-gl
+            -display "gtk,gl=on,grab-on-hover=on"
+            -boot "menu=on"
+    )
+
+        # Add KVM-specific arguments
+        if [ -r /dev/kvm ]; then
+            qemu_args+=(-enable-kvm -cpu host)
+    else
+            qemu_args+=(-cpu qemu64)
+    fi
+
+        # Add network arguments if extra_args are provided
+        if [ -n "$extra_args" ]; then
+            qemu_args+=(-device "virtio-net,netdev=net0" -netdev "user,id=net0,$extra_args")
+    fi
+
+        # Add any extra VM arguments
+        if [ -n "${VM_EXTRA_ARGS:-}" ]; then
+            # shellcheck disable=SC2086
+            read -ra extra_vm_args <<< "$VM_EXTRA_ARGS"
+            qemu_args+=("${extra_vm_args[@]}")
+    fi
+
+        # Background mode keeps the real QEMU PID available for safe interruption.
+        if [[ $execution_mode == "background" ]]; then
+            "$qemu_cmd" "${qemu_args[@]}" 2> "$CACHE_DIR/qemu.log" &
+            ACTIVE_QEMU_PID=$!
+            return 0
+    fi
+
+        # Execute QEMU with all arguments and redirect stderr to log
+        if ! "$qemu_cmd" "${qemu_args[@]}" 2> "$CACHE_DIR/qemu.log"; then
+            echo "❌ QEMU failed to start. Check details in $CACHE_DIR/qemu.log" >&2
+    fi
+  fi
+}
+
+function wait_for_guest_ssh() {
+    local qemu_pid="$1"
+    local deadline=$((SECONDS + SSH_READY_TIMEOUT))
+
+    while ((SECONDS <= deadline)); do
+        if ssh-keyscan -p "$SSH_PORT" 127.0.0.1 2> /dev/null | grep -q "ssh-"; then
+            return 0
+    fi
+
+        if ! kill -0 "$qemu_pid" 2> /dev/null; then
+            wait "$qemu_pid" 2> /dev/null || true
+            ACTIVE_QEMU_PID=""
+            print_error "The setup VM stopped before SSH became available"
+            return 1
+    fi
+
+        sleep 1
+  done
+
+    print_error "Timed out waiting for the setup VM SSH server"
     return 1
+}
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Images & Snapshots                                                           │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+function get_latest_arch_image_url() {
+    echo "https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-basic.qcow2"
+}
+
+function download_archbox() {
+    local partial_image="${BASE_IMAGE}.part"
+
+    if [ ! -f "$BASE_IMAGE" ]; then
+        echo "📦 Downloading Arch Linux base image..."
+        local latest_url
+        latest_url=$(get_latest_arch_image_url)
+        rm -f -- "$partial_image"
+        register_temporary_path "$partial_image"
+        if ! curl -fL "$latest_url" -o "$partial_image"; then
+            rm -f -- "$partial_image"
+            print_error "Unable to download the Arch Linux base image"
+            return 1
+    fi
+        if ! mv -- "$partial_image" "$BASE_IMAGE"; then
+            print_error "Unable to store the Arch Linux base image"
+            return 1
+    fi
+        echo "✅ Base image downloaded successfully"
   fi
-  check_dependencies
-  run_vm "$revision" "$persistent"
 }
 
-print_section() {
-  printf '\n%s\n' "$1"
-  printf '%s\n' '────────────────────────────────────────────────────────────'
+function get_snapshot_name() {
+    local ref="$1"
+    if [ -z "$ref" ]; then
+        echo "master"
+  else
+        # Sanitize branch/commit name for filename
+        echo "${ref//[^a-zA-Z0-9._-]/_}"
+  fi
 }
 
-press_enter_to_continue() {
-  read -r -p 'Press Enter to continue...' _ || true
+function create_ravn_snapshot() {
+    local ref="${1:-master}"
+    local setup_completed=""
+    local snapshot_name
+    snapshot_name=$(get_snapshot_name "$ref")
+    local snapshot_path="$SNAPSHOTS_DIR/ravn-$snapshot_name.qcow2"
+    local qemu_cmd
+    qemu_cmd=$(get_qemu_command)
+
+    # Check if snapshot already exists
+    if [ -f "$snapshot_path" ]; then
+        echo "📸 Snapshot for '$ref' already exists"
+        return 0
+  fi
+
+    echo "🔨 Creating RaVN snapshot for '$ref'..."
+
+    # Create temporary VM image for setup
+    local temp_image="$CACHE_DIR/temp-setup.qcow2"
+    register_temporary_path "$temp_image"
+    qemu-img create -f qcow2 -F qcow2 -b "$BASE_IMAGE" "$temp_image"
+
+    # Create setup script that will be available in the VM
+    local setup_script="$CACHE_DIR/setup.sh"
+    register_temporary_path "$setup_script"
+    cat > "$setup_script" << SETUP_EOF
+#!/bin/bash
+set -e
+
+echo "🚀 Setting up RaVN environment for branch/commit: $ref"
+
+# Set root password for convenience (using 'arch' as requested for simplicity)
+echo "🔐 Setting root password..."
+echo "root:arch" | sudo chpasswd
+
+# Update system and install dependencies
+echo "📦 Updating system and installing dependencies..."
+sudo pacman -Syu --noconfirm
+sudo pacman -S --needed --noconfirm git base-devel openssh curl kitty-terminfo
+
+# Configure SSH
+echo "🔧 Configuring SSH..."
+sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+sudo systemctl enable sshd
+
+# Clone or update RaVN repository
+echo "📥 Setting up RaVN repository..."
+cd /home/arch
+if [ -d "RaVN" ]; then
+    echo "   RaVN directory exists, updating..."
+    cd RaVN
+    git remote set-url origin "$RAVN_REPO" 2>/dev/null || true
+    git fetch origin
+    git reset --hard HEAD  # Reset any local changes
+else
+    echo "   Cloning RaVN repository..."
+    git clone "$RAVN_REPO" RaVN
+    cd RaVN
+fi
+
+# Checkout specific branch/commit if provided
+if [ "$ref" != "master" ]; then
+    echo "🌿 Checking out branch/commit: $ref"
+    git fetch origin
+
+    # Check if it's a branch or commit
+    if git show-ref --verify --quiet "refs/remotes/origin/$ref" 2>/dev/null; then
+        echo "   Found branch: $ref"
+        # Delete local branch if it exists, then create fresh one
+        git branch -D "$ref" 2>/dev/null || true
+        git checkout -b "$ref" "origin/$ref"
+    else
+        echo "   Treating as commit: $ref"
+        git checkout "$ref"
+    fi
+else
+    echo "🌿 Using master branch"
+    git checkout master
+    git pull origin master
+fi
+
+echo ""
+echo "🎨 RaVN repository ready!"
+
+# Check if RaVN is already installed
+if [ -f "/home/arch/.config/hypr/hyprland.conf" ] && [ -f "/home/arch/.config/hyde/config.toml" ]; then
+    echo "⚠️  RaVN appears to already be installed."
+    echo "   Configuration files found. Skipping installation."
+    echo "   If you want to reinstall, remove ~/.config/hypr and ~/.config/hyde first."
+else
+    echo "🚀 Starting RaVN installation..."
+    cd /home/arch/RaVN/Scripts
+    ./install.sh
+    echo "✅ RaVN installation complete!"
+fi
+
+echo ""
+echo "🎉 Setup complete!"
+echo "💾 Please shutdown the VM now by running: sudo poweroff"
+echo "   This will create the snapshot for future use."
+echo ""
+echo "📝 If something went wrong, you can re-run this script safely."
+SETUP_EOF
+
+    chmod +x "$setup_script"
+
+    echo ""
+    echo "🖥️  Starting VM for RaVN installation..."
+    echo "📋 SETUP INSTRUCTIONS:"
+    echo "   1. The VM will boot in the background."
+    echo "   2. The setup script will be automatically copied to /home/arch/setup.sh via SSH (port ${SSH_PORT})."
+    echo "   3. Once copied, login to the VM (arch/arch) or SSH into it: ssh arch@127.0.0.1 -p ${SSH_PORT} (or ssh ravnvm)"
+    echo "   4. Run the setup script manually: chmod +x ./setup.sh && ./setup.sh"
+    echo "   5. When the installation finishes, power off the VM: sudo poweroff"
+    echo "      (This will automatically complete the snapshot creation on the host)"
+    echo ""
+
+    # Start VM for setup in background with SSH port forward
+    run_qemu_vm "$temp_image" "${VM_MEMORY:-4G}" "${VM_CPUS:-2}" "hostfwd=tcp::${SSH_PORT}-:22" "background"
+    local qemu_pid="$ACTIVE_QEMU_PID"
+
+    echo "⏳ Waiting for VM SSH server to be fully ready..."
+    if ! wait_for_guest_ssh "$qemu_pid"; then
+        cleanup_runtime
+        return 1
+  fi
+    echo "✅ SSH server is ready."
+
+    echo "📥 Copying setup script to VM..."
+    # We use StrictHostKeyChecking=no and UserKnownHostsFile=/dev/null to avoid host key warnings
+    local ssh_opts=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
+    if command -v sshpass > /dev/null 2>&1; then
+        sshpass -p 'arch' scp -P "$SSH_PORT" "${ssh_opts[@]}" "$setup_script" arch@127.0.0.1:/home/arch/setup.sh
+  else
+        echo "💡 Tip: Install 'sshpass' to avoid entering the 'arch' password manually."
+        scp -P "$SSH_PORT" "${ssh_opts[@]}" "$setup_script" arch@127.0.0.1:/home/arch/setup.sh
+  fi
+    echo "✅ setup.sh copied successfully to /home/arch/setup.sh"
+    echo "🚀 You can now login to the VM and run: chmod +x ./setup.sh && ./setup.sh"
+
+    # Wait for QEMU process to finish cleanly
+    if ! wait "$qemu_pid"; then
+        ACTIVE_QEMU_PID=""
+        print_error "The setup VM exited with an error; no snapshot was cached"
+        return 1
+  fi
+    ACTIVE_QEMU_PID=""
+
+    echo ""
+    read -r -p "${LIGHT_GRAY}Did the RaVN setup complete successfully? [y/N]${NC} " setup_completed
+    if [[ ! $setup_completed =~ ^[Yy]$ ]]; then
+        print_error "Setup was not confirmed; no snapshot was cached"
+        return 1
+  fi
+
+    echo ""
+    echo "💾 Converting VM to snapshot..."
+
+    # Convert temporary image to final snapshot
+    if ! qemu-img convert -O qcow2 "$temp_image" "$snapshot_path"; then
+        rm -f -- "$snapshot_path"
+        print_error "Unable to create the revision snapshot"
+        return 1
+  fi
+
+    # Cleanup
+    rm -f "$temp_image" "$setup_script"
+
+    echo "✅ Snapshot created: ravn-$snapshot_name"
+    echo "🚀 You can now run: ravnvm $ref"
 }
 
-print_banner() {
-  cat << 'BANNER'
+function run_vm() {
+    local ref="${1:-master}"
+    local persistent="${2:-false}"
+    local snapshot_name
+    snapshot_name=$(get_snapshot_name "$ref")
+    local snapshot_path="$SNAPSHOTS_DIR/ravn-$snapshot_name.qcow2"
+    local qemu_cmd
+    qemu_cmd=$(get_qemu_command)
 
-  RavnVM — QEMU/KVM Development Environment
-BANNER
+    # Ensure snapshot exists
+    if [ ! -f "$snapshot_path" ]; then
+        echo "📸 Snapshot for '$ref' not found, creating it..."
+        if ! create_ravn_snapshot "$ref"; then
+            return 1
+    fi
+  fi
+
+    local vm_disk
+    if [ "$persistent" = "true" ]; then
+        echo "🔒 Running in persistent mode - changes will be saved"
+        vm_disk="$snapshot_path"
+  else
+        echo "🔄 Running in non-persistent mode - changes will be discarded"
+        vm_disk="$(mktemp -p "$CACHE_DIR" overlay.XXXXXX.qcow2)"
+        register_temporary_path "$vm_disk"
+        qemu-img create -f qcow2 -F qcow2 -b "$snapshot_path" "$vm_disk"
+  fi
+
+    echo "🚀 Starting RaVN VM (branch/commit: $ref)..."
+    echo "   Login: arch / arch"
+    echo "   SSH: ssh arch@127.0.0.1 -p ${SSH_PORT} (or run: ravnvm --ssh or ssh ravnvm)"
+
+    # Run VM with SSH port forwarding
+    run_qemu_vm "$vm_disk" "${VM_MEMORY:-4G}" "${VM_CPUS:-2}" "hostfwd=tcp::${SSH_PORT}-:22"
+
+    if [ "$persistent" != "true" ]; then
+        rm -f -- "$vm_disk"
+  fi
 }
 
-format_bytes() {
+function list_snapshots() {
+    local snapshots=""
+
+    echo "📸 Available RaVN snapshots:"
+    if [ -d "$SNAPSHOTS_DIR" ]; then
+        snapshots=$(find "$SNAPSHOTS_DIR" -name "ravn-*.qcow2" -exec basename {} \; |
+            sed 's/^ravn-//' | sed 's/\.qcow2$//' | sort)
+
+        if [ -n "$snapshots" ]; then
+            printf '%s\n' "$snapshots"
+    else
+            echo "No snapshots found"
+    fi
+  else
+        echo "No snapshots found"
+  fi
+}
+
+function clean_cache() {
+    echo "🧹 Cleaning RavnVM cache (preserving base image)..."
+    if [ ! -d "$CACHE_DIR" ]; then
+        print_error "RavnVM cache directory not found"
+        return 1
+  fi
+
+    if ! find "$CACHE_DIR" -mindepth 1 -maxdepth 1 \
+        ! -name "archbase.qcow2" ! -name "session.lock" -exec rm -rf {} +; then
+        print_error "Unable to clean RavnVM cache"
+        return 1
+  fi
+
+    if ! mkdir -p "$SNAPSHOTS_DIR"; then
+        print_error "Unable to recreate snapshots directory"
+        return 1
+  fi
+
+    if [ -f "$BASE_IMAGE" ]; then
+        print_success "Cache cleaned; base image preserved"
+  else
+        print_success "Cache cleaned"
+  fi
+}
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Interactive Interface                                                        │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+function press_enter_to_continue() {
+  read -r -p "Press Enter to continue..." _
+}
+
+function print_ravnvm_banner() {
+  echo -e "${CYAN}"
+  cat << 'BANNER_EOF'
+  ╭────────────────────────────────────────────────────╮
+  │                                                    │
+  │  ██████╗  █████╗ ██╗   ██╗███╗   ██╗               │
+  │  ██╔══██╗██╔══██╗██║   ██║████╗  ██║               │
+  │  ██████╔╝███████║██║   ██║██╔██╗ ██║               │
+  │  ██╔══██╗██╔══██║╚██╗ ██╔╝██║╚██╗██║               │
+  │  ██║  ██║██║  ██║ ╚████╔╝ ██║ ╚████║               │
+  │  ╚═╝  ╚═╝╚═╝  ╚═╝  ╚═══╝  ╚═╝  ╚═══╝               │
+  │                                                    │
+  │       RavnVM — QEMU/KVM Development Environment    │
+  │                                                    │
+BANNER_EOF
+  echo -e "  │       ${GRAY}by Roberto Flores ${WHITE}@robert-flo${CYAN}                │"
+  cat << 'BANNER_EOF'
+  │                                                    │
+  ╰────────────────────────────────────────────────────╯
+BANNER_EOF
+  echo -e "${NC}"
+}
+
+function format_bytes() {
   local bytes="${1:-0}"
 
   awk -v bytes="$bytes" 'BEGIN {
     split("B KiB MiB GiB TiB", units)
     unit = 1
-    while (bytes >= 1024 && unit < 5) {
+    unit_index = 1
+    while (bytes >= 1024 && unit_index < 5) {
       bytes /= 1024
       unit++
+      unit_index++
     }
-    printf "%.2f %s", bytes, units[unit]
+    printf "%.2f %s", bytes, units[unit_index]
   }'
 }
 
-show_storage_status() {
-  local cache_bytes=0
-  local filesystem_total=0
-  local filesystem_used=0
-  local filesystem_available=0
-  local filesystem_percent=0
-  local storage_label="Available"
+function show_storage_status() {
+  local cache_bytes="0"
+  local filesystem_total="0"
+  local filesystem_used="0"
+  local filesystem_available="0"
+  local filesystem_percent="0"
+  local storage_status=""
 
-  ensure_cache
-  cache_bytes=$(du -s -B1 "$CACHE_DIR" 2> /dev/null | awk '{print $1}' || printf '0\n')
+  cache_bytes=$(du -s -B1 "$CACHE_DIR" 2> /dev/null | awk '{print $1}' || echo "0")
   read -r filesystem_total filesystem_used filesystem_available filesystem_percent < <(
     df -P -B1 "$CACHE_DIR" 2> /dev/null | awk 'NR == 2 {
       gsub("%", "", $5)
@@ -486,72 +823,88 @@ show_storage_status() {
   ) || true
 
   if ((filesystem_percent >= 90)); then
-    storage_label="Critical"
+    storage_status="${RED}${ICON_DIAGNOSTIC_ERROR} Critical${NC}"
   elif ((filesystem_percent >= 80)); then
-    storage_label="High usage"
+    storage_status="${YELLOW}${ICON_DIAGNOSTIC_WARNING} High usage${NC}"
+  else
+    storage_status="${GREEN}${ICON_CHECK} Available${NC}"
   fi
 
-  print_section "Storage — $storage_label"
-  printf 'VM cache: %s\n' "$(format_bytes "$cache_bytes")"
-  printf 'Disk: %s used / %s (%s%%)\n' \
-    "$(format_bytes "$filesystem_used")" \
-    "$(format_bytes "$filesystem_total")" \
-    "$filesystem_percent"
-  printf 'Free: %s\n' "$(format_bytes "$filesystem_available")"
+  print_section "${ICON_UI_STORAGE} Storage ${storage_status}"
+  print_info "${ICON_UI_DATABASE} VM cache: $(format_bytes "$cache_bytes")"
+  print_info "${ICON_UI_STORAGE} Disk: $(format_bytes "$filesystem_used") used / $(format_bytes "$filesystem_total") (${filesystem_percent}%)"
+  print_info "${ICON_UI_DOWNLOAD} Free: $(format_bytes "$filesystem_available")"
 
   if ((filesystem_percent >= 90)); then
     print_error "Storage critically low; clean old VM snapshots before continuing"
   elif ((filesystem_percent >= 80)); then
-    print_warning "Storage usage is high; review VM snapshots before creating another"
+    print_warn "Storage usage is high; review VM snapshots before creating another"
   fi
 }
 
-validate_environment() {
-  local command_name=""
-  local validation_failed=false
+function validate_command() {
+  local command_name="$1"
 
-  print_section "Validating Environment"
-  if ! ensure_cache; then
-    print_error "RavnVM cache directory is not writable"
-    return 1
+  if command_exists "$command_name"; then
+    print_success "$command_name"
+    return 0
   fi
-  if [[ ! -w $CACHE_DIR || ! -w $SNAPSHOTS_DIR ]]; then
-    print_error "RavnVM cache directory is not writable"
-    validation_failed=true
-  else
-    printf '✓ RavnVM cache directory\n'
-  fi
-  for command_name in "${REQUIRED_COMMANDS[@]}"; do
-    if command -v "$command_name" > /dev/null 2>&1; then
-      printf '✓ %s\n' "$command_name"
-    else
-      printf '✗ %s not found\n' "$command_name"
-      validation_failed=true
+
+  print_error "$command_name not found"
+  return 1
+}
+
+function validate_environment() {
+  local command_name=""
+  local validation_failed=0
+
+  print_section "${ICON_UI_GEAR} Validating Environment"
+  for command_name in qemu-system-x86_64 qemu-img curl git; do
+    if ! validate_command "$command_name"; then
+      validation_failed=1
     fi
   done
 
-  if [[ -r /dev/kvm ]]; then
-    printf '✓ KVM acceleration\n'
+  if command_exists python3 || command_exists python; then
+    print_success "python"
   else
-    print_warning "KVM is unavailable; QEMU will run without hardware acceleration"
+    print_error "python not found"
+    validation_failed=1
   fi
-  show_storage_status
 
-  [[ $validation_failed == false ]]
+  if [[ -d "$CACHE_DIR" && -w "$CACHE_DIR" ]]; then
+    print_success "RavnVM cache directory"
+  else
+    print_error "RavnVM cache directory is not writable"
+    validation_failed=1
+  fi
+
+  if [[ -r /dev/kvm ]]; then
+    print_success "KVM acceleration"
+  else
+    print_warn "KVM unavailable; QEMU will run without hardware acceleration"
+  fi
+
+  show_storage_status
+  return "$validation_failed"
 }
 
-recover_environment() {
+function recover_environment() {
   local recovery_choice=""
 
   while ! validate_environment; do
-    print_section "Required dependencies missing"
-    printf '  %b1%b  Install dependencies\n' "$GREEN" "$NC"
-    printf '  %bq%b  Exit\n\n' "$GREEN" "$NC"
-    read -r -p 'Selection: ' recovery_choice || return 1
+    print_section "${ICON_DIAGNOSTIC_ERROR} Required dependencies missing"
+    echo -e "  ${GREEN}1${NC}  ${ICON_UI_PACKAGE}  Install dependencies"
+    echo -e "  ${GREEN}q${NC}  ${ICON_UI_CLOSE}  Exit"
+    echo ""
+    read -r -p "${LIGHT_GRAY}Selection:${NC} " recovery_choice
 
     case "$recovery_choice" in
       1)
-        install_arch_dependencies || true
+        if ! install_all_arch_dependencies; then
+          print_error "Dependency installation failed"
+          press_enter_to_continue
+        fi
         ;;
       q | Q)
         return 1
@@ -562,130 +915,208 @@ recover_environment() {
         ;;
     esac
   done
+
+  return 0
 }
 
-show_menu() {
-  print_section "Choose an action"
-  printf '  %b1%b   Run master branch\n' "$GREEN" "$NC"
-  printf '  %b2%b   Run dev branch\n' "$GREEN" "$NC"
-  printf '  %b3%b   Run current branch\n' "$GREEN" "$NC"
-  printf '  %b4%b   Run other branch or commit\n' "$GREEN" "$NC"
-  printf '  %b5%b   Show VM storage usage\n' "$GREEN" "$NC"
-  printf '  %b6%b   Clean VM cache\n' "$GREEN" "$NC"
-  printf '  %b7%b   List VM snapshots\n' "$GREEN" "$NC"
-  printf '  %b8%b   Configure RAM and CPU\n' "$GREEN" "$NC"
-  printf '  %b9%b   Show RavnVM usage\n' "$GREEN" "$NC"
-  printf '  %b10%b  Connect to VM via SSH\n' "$GREEN" "$NC"
-  printf '  %bq%b   Exit\n\n' "$GREEN" "$NC"
+function show_menu() {
+  clear || true
+  print_ravnvm_banner
+  print_section "${ICON_UI_COMMAND} Choose an action"
+  echo -e "  ${GREEN}1${NC}  ${ICON_GIT_BRANCH}  Run master branch"
+  echo -e "  ${GREEN}2${NC}  ${ICON_GIT_BRANCH}  Run dev branch"
+  echo -e "  ${GREEN}3${NC}  ${ICON_GIT_BRANCH}  Run current branch"
+  echo -e "  ${GREEN}4${NC}  ${ICON_GIT_BRANCH}  Run other branch or commit"
+  echo -e "  ${GREEN}5${NC}  ${ICON_UI_STORAGE}  Show VM storage usage"
+  echo -e "  ${GREEN}6${NC}  ${ICON_UI_TRASH}  Clean VM cache"
+  echo -e "  ${GREEN}7${NC}  ${ICON_UI_LIST}  List VM snapshots"
+  echo -e "  ${GREEN}8${NC}  ${ICON_UI_GEAR}  Configure RAM and CPU"
+  echo -e "  ${GREEN}9${NC}  ${ICON_DIAGNOSTIC_INFO}  Show RavnVM usage"
+  echo -e "  ${GREEN}10${NC} ${ICON_UI_TERMINAL}  Connect to VM via SSH"
+  echo -e "  ${GREEN}11${NC} ${ICON_UI_GEAR}  Install SSH alias"
+  echo -e "  ${GREEN}q${NC}  ${ICON_UI_CLOSE}  Exit"
+  echo ""
+  read -r -p "${LIGHT_GRAY}Selection:${NC} " MENU_CHOICE
 }
 
-select_execution_mode() {
-  local -n selected_persistence="$1"
+function get_current_branch() {
+  local current_branch=""
+
+  current_branch=$(git branch --show-current 2> /dev/null || true)
+  printf '%s\n' "$current_branch"
+}
+
+function select_execution_mode() {
   local mode_choice=""
 
-  selected_persistence=""
-  print_section "Choose VM mode"
-  printf '  %b1%b  Ephemeral\n' "$GREEN" "$NC"
-  printf '  %b2%b  Persistent\n' "$GREEN" "$NC"
-  printf '  %bq%b  Back\n\n' "$GREEN" "$NC"
-  read -r -p 'Selection: ' mode_choice || return 1
+  SELECTED_PERSISTENCE=""
+
+  print_section "${ICON_UI_PLAY} Choose VM mode"
+  echo -e "  ${GREEN}1${NC}  ${ICON_UI_PLAY}  Ephemeral"
+  echo -e "  ${GREEN}2${NC}  ${ICON_UI_SAVE}  Persistent"
+  echo -e "  ${GREEN}q${NC}  ${ICON_UI_ARROW_LEFT}  Back"
+  echo ""
+  read -r -p "${LIGHT_GRAY}Selection:${NC} " mode_choice
 
   case "$mode_choice" in
     1)
-      # shellcheck disable=SC2034 # nameref writes the caller's selected mode
-      selected_persistence=false
+      SELECTED_PERSISTENCE="false"
       ;;
     2)
-      # shellcheck disable=SC2034 # nameref writes the caller's selected mode
-      selected_persistence=true
+      SELECTED_PERSISTENCE="true"
       ;;
     q | Q)
       return 1
       ;;
     *)
-      print_error "Invalid mode option: $mode_choice"
+      echo "Invalid mode option: $mode_choice"
       return 1
       ;;
   esac
 }
 
-run_menu_revision() {
-  local revision="$1"
-  local persistent=""
+function configure_vm_resources() {
+  local current_memory="${VM_MEMORY:-4G}"
+  local current_cpus="${VM_CPUS:-2}"
+  local requested_memory=""
+  local requested_cpus=""
 
-  select_execution_mode persistent || return 0
-  run_revision "$revision" "$persistent" || true
+  print_section "${ICON_UI_GEAR} Configure VM resources"
+  read -r -p "${LIGHT_GRAY}RAM [${current_memory}]:${NC} " requested_memory
+  read -r -p "${LIGHT_GRAY}CPUs [${current_cpus}]:${NC} " requested_cpus
+
+  VM_MEMORY="${requested_memory:-$current_memory}"
+  VM_CPUS="${requested_cpus:-$current_cpus}"
+
+  if ! [[ $VM_CPUS =~ ^[1-9][0-9]*$ ]]; then
+    print_error "CPU count must be a positive integer"
+    VM_CPUS="$current_cpus"
+    press_enter_to_continue
+    return 1
+  fi
+
+  export VM_MEMORY VM_CPUS
+  print_success "Session resources: ${VM_MEMORY} RAM, ${VM_CPUS} CPUs"
   press_enter_to_continue
 }
 
-configure_session_resources() {
-  local requested_memory=""
-  local requested_cpus=""
-  local current_memory="${VM_MEMORY:-$DEFAULT_MEMORY}"
-  local current_cpus="${VM_CPUS:-$DEFAULT_CPUS}"
+function run_selected_revision() {
+  local revision="$1"
 
-  print_section "Configure VM resources"
-  read -r -p "RAM [$current_memory]: " requested_memory || return 1
-  read -r -p "CPUs [$current_cpus]: " requested_cpus || return 1
-
-  requested_memory="${requested_memory:-$current_memory}"
-  requested_cpus="${requested_cpus:-$current_cpus}"
-  if [[ ! $requested_memory =~ ^[1-9][0-9]*[KkMmGgTt]?$ ]]; then
-    print_error "RAM must be a positive number with an optional K, M, G, or T suffix"
-    return 1
-  fi
-  if [[ ! $requested_cpus =~ ^[1-9][0-9]*$ ]]; then
-    print_error "CPU count must be a positive integer"
-    return 1
-  fi
-
-  VM_MEMORY="$requested_memory"
-  VM_CPUS="$requested_cpus"
-  export VM_MEMORY VM_CPUS
-  print_success "Session resources: $VM_MEMORY RAM, $VM_CPUS CPUs"
-}
-
-current_branch() {
-  local branch=""
-
-  branch=$(git branch --show-current 2> /dev/null || true)
-  printf '%s\n' "${branch:-master}"
-}
-
-run_interactive_menu() {
-  local choice=""
-  local custom_revision=""
-
-  print_banner
-  if ! recover_environment; then
-    printf 'RavnVM closed without starting a VM\n'
+  if ! select_execution_mode; then
     return 0
   fi
 
+  run_vm_command "$revision" "$SELECTED_PERSISTENCE" || true
+  press_enter_to_continue
+}
+
+function run_custom_revision() {
+  local custom_revision=""
+
+  read -r -p "${LIGHT_GRAY}Branch or commit:${NC} " custom_revision
+  if [[ -z $custom_revision ]]; then
+    print_error "A branch or commit is required"
+    press_enter_to_continue
+    return 1
+  fi
+
+  run_selected_revision "$custom_revision"
+}
+
+function connect_ssh() {
+  ssh -p "$SSH_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null arch@127.0.0.1
+}
+
+function install_ssh_alias() {
+  local ssh_directory="$HOME/.ssh"
+  local ssh_config="$ssh_directory/config"
+  local temporary_config=""
+  local block_begin="# >>> RavnVM managed SSH alias >>>"
+  local block_end="# <<< RavnVM managed SSH alias <<<"
+
+  mkdir -p "$ssh_directory"
+  chmod 700 "$ssh_directory"
+  touch "$ssh_config"
+
+  temporary_config=$(mktemp "$ssh_directory/config.XXXXXX")
+  register_temporary_path "$temporary_config"
+
+  {
+    printf '%s\n' "$block_begin"
+    printf 'Host ravnvm\n'
+    printf '    HostName 127.0.0.1\n'
+    printf '    User arch\n'
+    printf '    Port %s\n' "$SSH_PORT"
+    printf '    StrictHostKeyChecking no\n'
+    printf '    UserKnownHostsFile /dev/null\n'
+    printf '%s\n' "$block_end"
+
+    awk -v block_begin="$block_begin" -v block_end="$block_end" '
+      $0 == block_begin { in_managed_block = 1; next }
+      $0 == block_end { in_managed_block = 0; next }
+      in_managed_block { next }
+      !started && $0 == "" { next }
+      { started = 1; lines[++count] = $0 }
+      END {
+        if (count > 0) print ""
+        for (line = 1; line <= count; line++) print lines[line]
+      }
+    ' "$ssh_config"
+  } > "$temporary_config"
+
+  chmod 600 "$temporary_config"
+  mv -- "$temporary_config" "$ssh_config"
+  print_success "SSH alias installed; connect with: ssh ravnvm"
+}
+
+function run_vm_command() {
+  local revision="${1:-master}"
+  local persistent_mode="${2:-false}"
+  local run_status=0
+
+  if ! check_dependencies; then
+    return 1
+  fi
+
+  if ! acquire_vm_lock; then
+    return 1
+  fi
+
+  if ! download_archbox; then
+    release_vm_lock
+    return 1
+  fi
+
+  run_vm "$revision" "$persistent_mode" || run_status=$?
+  release_vm_lock
+  return "$run_status"
+}
+
+function run_interactive_menu() {
+  local choice=""
+  local current_branch=""
+
   while true; do
     show_menu
-    read -r -p 'Selection: ' choice || return 0
+    choice="$MENU_CHOICE"
+
     case "$choice" in
       1)
-        run_menu_revision master
+        run_selected_revision "master"
         ;;
       2)
-        run_menu_revision dev
+        run_selected_revision "dev"
         ;;
       3)
-        run_menu_revision "$(current_branch)"
+        current_branch=$(get_current_branch)
+        run_selected_revision "${current_branch:-master}"
         ;;
       4)
-        read -r -p 'Branch or commit: ' custom_revision || return 0
-        if [[ -z $custom_revision ]]; then
-          print_error "A branch or commit is required"
-          press_enter_to_continue
-        else
-          run_menu_revision "$custom_revision"
-        fi
+        run_custom_revision || true
         ;;
       5)
-        show_storage_status
+        show_storage_status || true
         press_enter_to_continue
         ;;
       6)
@@ -697,7 +1128,7 @@ run_interactive_menu() {
         press_enter_to_continue
         ;;
       8)
-        configure_session_resources || true
+        configure_vm_resources || true
         press_enter_to_continue
         ;;
       9)
@@ -705,82 +1136,99 @@ run_interactive_menu() {
         press_enter_to_continue
         ;;
       10)
-        connect_ssh || print_error "Unable to connect to the running VM"
+        if ! connect_ssh; then
+          print_warn "SSH session ended; the VM may have stopped or become unavailable"
+        fi
+        press_enter_to_continue
+        ;;
+      11)
+        if ! install_ssh_alias; then
+          print_error "Unable to install the SSH alias"
+        fi
         press_enter_to_continue
         ;;
       q | Q)
-        printf 'Goodbye!\n'
+        echo "Goodbye!"
         return 0
         ;;
       *)
-        print_error "Invalid option: $choice"
+        echo "Invalid option: $choice"
         press_enter_to_continue
         ;;
     esac
   done
 }
 
-main() {
-  local revision="master"
-  local revision_was_set=false
-  local persistent=false
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │ Entry Point                                                                  │
+# └──────────────────────────────────────────────────────────────────────────────┘
 
-  if (($# == 0)); then
-    run_interactive_menu
-    return
+# Main logic
+check_root
+
+if [[ $# -eq 0 ]]; then
+    clear || true
+    print_ravnvm_banner
+    if ! recover_environment; then
+        print_info "RavnVM closed without starting a VM"
+        exit 0
   fi
+    run_interactive_menu
+    exit 0
+fi
 
-  while (($# > 0)); do
+persistent="false"
+ref="master"
+
+# Parse arguments
+while [ $# -gt 0 ]; do
     case "$1" in
-      --persist)
-        persistent=true
-        ;;
-      --list)
-        list_snapshots
-        return
-        ;;
-      --clean)
-        clean_cache
-        return
-        ;;
-      --storage)
-        show_storage_status
-        return
-        ;;
-      --check-deps)
-        check_dependencies_only
-        return
-        ;;
-      --install-deps)
-        install_arch_dependencies
-        return
-        ;;
-      --ssh)
-        connect_ssh
-        return
-        ;;
-      --help | -h)
-        print_usage
-        return
-        ;;
-      --*)
-        print_error "Unknown option: $1"
-        print_usage >&2
-        return 2
-        ;;
-      *)
-        if [[ $revision_was_set == true ]]; then
-          print_error "Only one branch or commit may be specified"
-          return 2
-        fi
-        revision="$1"
-        revision_was_set=true
-        ;;
-    esac
-    shift
-  done
+        --persist)
+            persistent="true"
+            shift
+            ;;
+        --list)
+            list_snapshots
+            exit 0
+            ;;
+        --clean)
+            clean_cache
+            exit 0
+            ;;
+        --install-deps)
+            install_all_arch_dependencies
+            exit 0
+            ;;
+        --check-deps)
+            check_deps_only
+            exit $?
+            ;;
+        --install-ssh-alias)
+            install_ssh_alias
+            exit 0
+            ;;
+        --ssh)
+            connect_ssh
+            exit 0
+            ;;
+        --help | -h)
+            print_usage
+            exit 0
+            ;;
+        -*)
+            echo "❌ Unknown option: $1"
+            print_usage
+            exit 1
+            ;;
+        *)
+            ref="$1"
+            shift
+            ;;
+  esac
+done
 
-  run_revision "$revision" "$persistent"
+run_vm_command_direct() {
+    run_vm_command "$ref" "$persistent"
 }
 
-main "$@"
+run_vm_command_direct

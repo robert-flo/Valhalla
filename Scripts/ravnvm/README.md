@@ -6,8 +6,6 @@ RavnVM is a streamlined development tool that guides RaVN setup in a virtual mac
   - [Hardware Requirements](#hardware-requirements)
   - [Features](#features)
   - [Quick Start](#quick-start)
-    - [Arch Linux](#arch-linux)
-    - [NixOS](#nixos)
   - [First-Time Setup](#first-time-setup)
   - [Usage](#usage)
     - [Interactive menu](#interactive-menu)
@@ -21,7 +19,6 @@ RavnVM is a streamlined development tool that guides RaVN setup in a virtual mac
     - [Clean Start](#clean-start)
   - [VM Host Guide](#vm-host-guide)
     - [Hardware Requirements (Detailed)](#hardware-requirements-detailed)
-    - [Non-NixOS Hosts using Nix](#non-nixos-hosts-using-nix)
     - [AMD GPU + Any CPU ✅](#amd-gpu--any-cpu-)
     - [Intel CPU with iGPU ✅](#intel-cpu-with-igpu-)
     - [NVIDIA GPU + Any CPU ⚠️](#nvidia-gpu--any-cpu-️)
@@ -46,7 +43,7 @@ RavnVM is a streamlined development tool that guides RaVN setup in a virtual mac
 
 ## Features
 
-- **Zero Configuration**: Automatically downloads Arch Linux base image and sets up RaVN
+- **Guided Setup**: Automatically downloads the Arch Linux base image and copies the RaVN setup script into the VM
 - **Branch Testing**: Easily test any RaVN branch or commit hash
 - **Smart Caching**: Creates cached snapshots for faster subsequent runs (uses XDG cache directory)
 - **Optional Persistence**: Choose whether changes should be saved or discarded
@@ -54,23 +51,11 @@ RavnVM is a streamlined development tool that guides RaVN setup in a virtual mac
 
 ## Quick Start
 
-### Arch Linux
-
 ```bash
-# Download and run (will auto-detect missing packages)
-curl -L https://raw.githubusercontent.com/robert-flo/Valhalla/master/Scripts/ravnvm/ravnvm.sh -o ravnvm
-chmod +x ravnvm
-./ravnvm
-```
-
-### NixOS
-
-```bash
-# Using the Valhalla flake
-nix run github:robert-flo/Valhalla
-
-# Or if you have the repository cloned locally
-nix run
+# Clone and run (will auto-detect missing packages)
+git clone https://github.com/robert-flo/Valhalla.git
+cd Valhalla
+Scripts/ravnvm/ravnvm.sh
 ```
 
 ## First-Time Setup
@@ -78,11 +63,11 @@ nix run
 When you run a new branch/commit for the first time, ravnvm will:
 
 1. **OS Detection**: Automatically detects your OS and checks dependencies
-2. **Dependency Installation**: On Arch, reports when `ravnvm --install-deps` is required
+2. **Dependency Installation**: On Arch, offers to install missing packages
 3. **VM Setup**: Copies a setup script into the VM and shows the command to run
 4. **RaVN Installation**: You'll need to:
    - Login as `arch` / `arch`
-   - Run the displayed `./setup.sh <repository> <revision>` command
+   - Run `chmod +x ./setup.sh && ./setup.sh`
    - Wait for RaVN installation to complete
      - Hit enter for defaults
      - It will prompt for a password at the end, use `arch`
@@ -96,8 +81,8 @@ When you run a new branch/commit for the first time, ravnvm will:
 
 ### Interactive menu
 
-Running `ravnvm` without arguments validates the host and opens the interactive
-menu:
+Running `ravnvm` without arguments validates the host first and opens the
+interactive menu. The menu is the friendly interface for the same VM engine:
 
 ```text
 1  Run master branch
@@ -110,23 +95,29 @@ menu:
 8  Configure RAM and CPU
 9  Show RavnVM usage
 10 Connect to VM via SSH
+11 Install SSH alias
 q  Exit
 ```
 
-Revision actions offer ephemeral and persistent modes before starting the VM.
-The custom action accepts a branch name or commit hash. All revision actions use
-the configured GitHub repository inside the VM and never provision from the
-host working tree.
+Options 1–4 open a second menu where you choose `Ephemeral` (discard changes),
+`Persistent` (save changes), or `Back`. Option 4 accepts either a remote branch
+name or a commit hash. RavnVM always clones or updates the RaVN repository from
+GitHub inside the VM; it does not provision from local working-tree changes.
 
-Resource changes apply only to the current menu session. Storage reports show
-the RavnVM cache, used filesystem space, and free space, with warnings at 80%
-and 90% usage. Missing KVM remains a warning because QEMU can run without
+Option 8 changes RAM and CPU for the current process only. The defaults are
+`VM_MEMORY=4G` and `VM_CPUS=2`. Option 9 displays the same usage information as
+`ravnvm --help`, option 10 connects to the running VM on SSH port 2222, and
+option 11 installs the optional `ssh ravnvm` host alias.
+
+The menu validates the host environment first and shows the RavnVM cache size,
+filesystem usage, free space, and a storage warning when usage reaches 80% or
+90%. Missing KVM is reported as a warning because QEMU can still run without
 hardware acceleration.
 
-If required commands are missing, the normal menu remains unavailable and
-RavnVM offers only dependency installation or exit. Use `q` for a normal exit;
-`Ctrl-C` reports the interruption and cleans temporary VM state without removing
-the cached base image.
+Use `q` to exit and `Ctrl-C` to abort the current operation. RavnVM reports the
+interruption, preserves diagnostic output, and never removes the base image
+during an abort. If required dependencies are missing, only dependency
+installation and exit are offered until validation succeeds.
 
 ### Basic Commands
 
@@ -156,36 +147,46 @@ ravnvm --check-deps
 
 # Install dependencies (Arch only)
 ravnvm --install-deps
+
+# Install the optional `ssh ravnvm` host alias
+ravnvm --install-ssh-alias
 ```
 
 ### Make interface
 
-The repository Makefile exposes the same RavnVM engine through development
-targets:
+The repository's `make/dev.mk` exposes RavnVM through development targets. This
+is an alternative interaction surface over the same VM engine:
 
 ```bash
-# Run the current checkout revision, ephemerally or persistently
+# Run the current branch, or choose a revision with REF
 make dev-vm
+make dev-vm REF=dev
+make dev-vm REF=abc123def
+
+# Run with persistent changes
 make dev-vm-persist REF=dev
 
-# Forward session resources and QEMU overrides
-make dev-vm REF=feature/test VM_MEMORY=8G VM_CPUS=4
-make dev-vm VM_EXTRA_ARGS=-nographic VM_QEMU_OVERRIDE=custom-qemu
-
-# Inspect and administer RavnVM
+# Inspect and manage snapshots
 make dev-vm-list
 make dev-vm-clean
+
+# Check dependencies and inspect VM disk usage
 make dev-vm-setup
 make dev-vm-storage
 make dev-vm-size # Compatibility alias for dev-vm-storage
 make dev-vm-ssh
+make dev-vm-install-ssh-alias
 
-# Preview commands without starting or modifying a VM
-make dev-vm REF=dev DRY_RUN=1
+# Preview a target without launching or changing the VM
+make dev-vm DRY_RUN=1 REF=dev
 ```
 
-Run `make help` to discover all targets. The Make recipes delegate to
-`Scripts/ravnvm/ravnvm.sh`; they do not implement a second VM lifecycle.
+The Make integration source is `make/dev.mk`; it mirrors the interactive menu
+for revision execution, persistence, snapshots, cleanup, storage, dependency
+setup, resource defaults, and SSH access.
+
+`make dev-vm` defaults `REF` to the active checkout branch. VM resource
+variables and QEMU overrides can be passed through the make interface.
 
 ### Environment Variables
 
@@ -203,7 +204,8 @@ VM_QEMU_OVERRIDE="qemu-system-x86_64 -m 4G -smp 2 -enable-kvm -drive file=\$VM_D
 ## VM Details
 
 - **Login**: `arch` / `arch`
-- **SSH Access**: `ssh arch@localhost -p 2222`
+- **SSH Access**: `ssh arch@127.0.0.1 -p 2222` or `ravnvm --ssh`
+- **SSH Alias**: run `ravnvm --install-ssh-alias` once, then use `ssh ravnvm`
 - **Persistence**: Optional flag determines if changes are saved
 - **Cache Directory**: Uses XDG Base Directory specification (`$XDG_CACHE_HOME/ravnvm/`)
 - **Snapshots**: Stored in `$XDG_CACHE_HOME/ravnvm/snapshots/` (typically `~/.cache/ravnvm/snapshots/`)
@@ -224,7 +226,7 @@ virtualisation.libvirtd.enable = true;
 ### Missing Dependencies
 
 - **Arch**: Run `ravnvm --install-deps` when the dependency check reports missing commands.
-- **NixOS**: Run RavnVM through the flake so its runtime commands are provided by Nix.
+- **NixOS**: Provide `qemu`, `curl`, `python3`, and `git` through `nix-shell` or the system configuration.
 
 ### Clean Start
 
@@ -258,15 +260,6 @@ RaVN uses Hyprland, which has specific requirements for VM environments. Hyprlan
 - ✅ **Intel**: HD 4000+ (Ivy Bridge) or newer
 - ⚠️ **NVIDIA**: GTX 600+ series (proprietary drivers may cause issues)
 - **OpenGL 3.3+ support required**
-
-### Non-NixOS Hosts using Nix
-
-For non-NixOS hosts, use [nixGL](https://github.com/nix-community/nixGL) for better graphics support:
-
-```bash
-# Install nixGL first, then run RavnVM
-nixGL nix run github:robert-flo/RaVN
-```
 
 ### AMD GPU + Any CPU ✅
 
