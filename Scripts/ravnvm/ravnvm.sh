@@ -555,6 +555,7 @@ function create_ravn_snapshot() {
     cat > "$setup_script" << SETUP_EOF
 #!/bin/bash
 set -e
+export GIT_TERMINAL_PROMPT=0
 
 guest_step() { printf '▶ %s\n' "$*"; }
 guest_info() { printf '  %s\n' "$*"; }
@@ -580,6 +581,12 @@ sudo systemctl enable sshd
 
 # Clone or update RaVN repository
 guest_step "Setting up RaVN repository..."
+guest_info "Repository: $RAVNVM_REPO"
+if ! git ls-remote "$RAVNVM_REPO" HEAD >/dev/null 2>&1; then
+    guest_warn "Repository is not accessible: $RAVNVM_REPO"
+    guest_info "Use owner/name or a valid HTTPS .git URL, and verify its permissions."
+    exit 1
+fi
 cd /home/arch
 if [ -d "RaVN" ]; then
     guest_info "RaVN directory exists, updating..."
