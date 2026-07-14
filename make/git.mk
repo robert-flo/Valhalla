@@ -1,7 +1,7 @@
 # ═══════════════════════════════════════════════════════════════
 # 🔀 GIT OPERATIONS - Version control and backup
 # ═══════════════════════════════════════════════════════════════
-# 📚 Documentation: docs/src/content/docs/makefile/06-git.mdx
+# 📚 Documentation: docs/make/git.md
 # 🎯 Purpose: Stage, commit, push and inspect git repository state
 # ──── Overview: 7 targets for the full git commit/push cycle ─
 #
@@ -54,8 +54,34 @@ GIT_REMOTE ?= origin
 BASE_BRANCH ?= master
 PROTECTED_BRANCHES ?= master dev rc imgbot
 
-.PHONY: git-add git-commit git-cm git-add-commit git-push git-pull git-status git-diff git-log git-setup git-sync git-diff-dev git-diff-rc git-diff-here \
+.PHONY: help-git git-add git-commit git-cm git-add-commit git-push git-pull git-status git-diff git-log git-setup git-sync git-diff-dev git-diff-rc git-diff-here \
         git-add-fuzzy git-amend git-prune-branches git-diff-fuzzy git-search
+
+# ═══════════════════════════════════════════════════════════════
+# 🔀 HELP-GIT - Show Git operations
+# ═══════════════════════════════════════════════════════════════
+help-git: ## Show Git operation targets
+	@printf "\n"
+	@printf "$(CYAN)Git operation targets$(NC)\n"
+	@printf "$(CYAN)────────────────────────────────────────────────────────────────────────────────$(NC)\n"
+	@printf "  make git-add              Stage all changes\n"
+	@printf "  make git-commit           Stage and create a timestamped commit\n"
+	@printf "  make git-cm MSG=...       Stage and commit with a custom message\n"
+	@printf "  make git-add-commit       Stage and commit in one step\n"
+	@printf "  make git-push             Push the current branch\n"
+	@printf "  make git-pull             Pull the current branch\n"
+	@printf "  make git-status           Show repository state\n"
+	@printf "  make git-diff             Show uncommitted changes\n"
+	@printf "  make git-log              Show recent history\n"
+	@printf "  make git-add-fuzzy        Select files to stage\n"
+	@printf "  make git-amend            Amend the last commit\n"
+	@printf "  make git-prune-branches   Delete inactive merged branches\n"
+	@printf "  make git-diff-fuzzy       Select a commit to inspect\n"
+	@printf "  make git-search           Search history by CODE or MSG\n"
+	@printf "  make git-setup            Create a bare clone and worktrees\n"
+	@printf "  make git-sync             Rebase topic worktrees onto origin/master\n"
+	@printf "  make git-diff-here        Compare the worktree with the base branch\n"
+	@printf "\nRun make help-aliases for compatibility aliases. Set DRY_RUN=1 to preview mutating targets.\n"
 
 # ═══════════════════════════════════════════════════════════════
 # 💾 GIT-ADD - Stage all modified/new files for commit

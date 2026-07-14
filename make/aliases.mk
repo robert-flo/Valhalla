@@ -1,7 +1,7 @@
 # ═══════════════════════════════════════════════════════════════
 # 📎 COMPATIBILITY ALIASES - Legacy command redirects
 # ═══════════════════════════════════════════════════════════════
-# 📚 Documentation: docs/src/content/docs/makefile/10-aliases.mdx
+# 📚 Documentation: docs/make/aliases.md
 # 🎯 Purpose: Redirect deprecated command names to new naming convention
 # ──── Overview: All old commands kept for compatibility, deprecated ────
 
