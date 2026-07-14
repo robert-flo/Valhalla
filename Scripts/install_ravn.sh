@@ -7,6 +7,9 @@ LAUNCHERS_DIR="${SCRIPT_DIR}/launchers"
 LAUNCHER_INSTALLER="${LAUNCHERS_DIR}/install_launchers.sh"
 LAUNCHER_MANAGER="${LAUNCHERS_DIR}/manage_launchers.sh"
 LEGACY_INSTALLER="${SCRIPT_DIR}/install.sh"
+readonly CATEGORY_BINARIES="Binaries"
+readonly CATEGORY_CONFIGURATIONS="Configurations"
+readonly CATEGORY_APPLICATIONS="Applications"
 
 # shellcheck disable=SC1091
 if ! source "${SCRIPT_DIR}/global_fn.sh"; then
@@ -50,8 +53,49 @@ install_all_launchers() {
   fi
 }
 
-run_all() {
-  install_all_launchers
+category_unavailable() {
+  print_warn "$1 are not available yet"
+  print_info "This category is visible for discovery and did not change your system"
+}
+
+install_category() {
+  case "$1" in
+    launchers) install_all_launchers ;;
+    binaries) category_unavailable "$CATEGORY_BINARIES" ;;
+    configurations) category_unavailable "$CATEGORY_CONFIGURATIONS" ;;
+    applications) category_unavailable "$CATEGORY_APPLICATIONS" ;;
+    *)
+       print_error "Unknown RaVN category: $1"
+                                                return 2
+                                                         ;;
+  esac
+}
+
+install_everything() {
+  local category=""
+  local failed=0
+  local status=0
+  local -a results=()
+
+  print_header "Install everything"
+  for category in launchers binaries configurations applications; do
+    if install_category "$category"; then
+      results+=("$category:ok")
+    else
+      status=$?
+      results+=("$category:failed($status)")
+      ((failed += 1))
+    fi
+  done
+  print_section "Installation summary"
+  for status in "${results[@]}"; do
+    if [[ $status == *:ok ]]; then
+      print_success "$status"
+    else
+      print_error "$status"
+    fi
+  done
+  ((failed == 0))
 }
 
 test_launchers() {
@@ -118,6 +162,10 @@ show_main_menu() {
   print_header "Ravn installer"
   print_section "${RAVN_ICON[ui_command]} Choose an installation step"
   echo -e "  ${GREEN}1${NC}  ${RAVN_ICON[ui_package]}  Desktop launchers"
+  echo -e "  ${GREEN}2${NC}  ${RAVN_ICON[ui_terminal]}  Binaries"
+  echo -e "  ${GREEN}3${NC}  ${RAVN_ICON[ui_gear]}  Configurations"
+  echo -e "  ${GREEN}4${NC}  ${RAVN_ICON[ui_package]}  Applications"
+  echo -e "  ${GREEN}5${NC}  ${RAVN_ICON[ui_rocket]}  Install everything"
   echo -e "  ${GREEN}q${NC}  ${RAVN_ICON[ui_close]}  Exit"
   echo ""
   printf '%b' "${LIGHT_GRAY}Selection:${NC} "
@@ -134,6 +182,22 @@ run_main_menu() {
       1)
         run_launchers_menu
         ;;
+      2)
+         category_unavailable "$CATEGORY_BINARIES"
+                                                    press_enter_to_continue
+                                                                            ;;
+      3)
+         category_unavailable "$CATEGORY_CONFIGURATIONS"
+                                                          press_enter_to_continue
+                                                                                  ;;
+      4)
+         category_unavailable "$CATEGORY_APPLICATIONS"
+                                                        press_enter_to_continue
+                                                                                ;;
+      5)
+         install_everything || true
+                                     press_enter_to_continue
+                                                             ;;
       q | Q)
         echo ""
         print_goodbye "Goodbye, ${USER:-$(id -un)}!"
@@ -153,7 +217,11 @@ print_usage() {
 Usage: install_ravn.sh [COMMAND]
 
 Commands:
-  all, --all         Install all Desktop launchers
+  all, --all         Install all available RaVN categories
+  launchers          Install all Desktop launchers
+  binaries           Report the Binaries category as unavailable
+  configurations     Report the Configurations category as unavailable
+  applications       Report the Applications category as unavailable
   test, --test       Audit launcher artifacts declared in the manifest
   clean, --clean     Remove declared launcher artifacts after confirmation
   dry-run, --dry-run Show what installation would do without modifying $HOME
@@ -174,7 +242,19 @@ run_dry_run() {
 main() {
   case "${1:-menu}" in
     all | --all)
-      run_all
+      install_everything
+      ;;
+    launchers)
+      install_category launchers
+      ;;
+    binaries)
+      install_category binaries
+      ;;
+    configurations)
+      install_category configurations
+      ;;
+    applications)
+      install_category applications
       ;;
     test | --test)
       test_launchers
