@@ -1,0 +1,133 @@
+# Managed Desktop launcher artifacts.
+# flag|destination|artifact|owner
+P|${HOME}/.local/share/applications|Basecamp.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Canva ai.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|ChatGPT.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|ChatGPT Codex Cloud.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Claro Video.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Claude AI.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Deepseek ai.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Discord.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Disney.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|ExcaliDraw.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Figma.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Fizzy.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Fronted Masters.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Gemini AI.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|GitHub.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Gitkraken dev.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Go Rails.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Google Contacts.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Google Maps.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Google Messages.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Google Photos.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Grok AI.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|HBO.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|HEY.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Kimi ai.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|M365 Copilot ai.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Manus ai.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|MiMo AI Studio.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Mistral ai.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|minimax Agent.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Monica HQ.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Netflix.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|NotebookLM.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Notion.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|OpenClaw Dashboard.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Perplexity ai.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Raindrop.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Platzi.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Qwen Coder.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Qwen ai.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|TickTick.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Tigo Sports.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Vix.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|WhatsApp.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|X.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|XB.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|XG.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|YouTube.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Z.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Zoom.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Antigravity CLI.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Disk Usage.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Docker.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Grok Build.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Herdr.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Hermes Desktop.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Hermes TUI.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Hermes Web.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|MiMoCode TUI.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Qwen Code TUI.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|OpenClaude TUI.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|OpenClaw TUI.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|OpenCode Desktop.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|OpenCode TUI.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|OpenCode Web.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|command-code.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|lyricify.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|ncdu.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|omp TUI.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Zero TUI.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|Codex TUI.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|WhatsApp 2.desktop|desktop-launcher
+P|${HOME}/.local/share/applications|X 2.desktop|desktop-launcher
++P|${HOME}/.local/share/applications/icons|Basecamp.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Canva ai.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|ChatGPT.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Claro Video.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Claude AI.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Deepseek ai.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Discord.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Disney.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|ExcaliDraw.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Figma.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Fizzy.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Fronted Masters.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Gemini AI.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|GitHub.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Gitkraken dev.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Go Rails.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Google Contacts.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Google Maps.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Google Messages.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Google Photos.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Grok AI.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|HBO.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|HEY.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Kimi ai.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|M365 Copilot ai.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Manus ai.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|mimo.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Mistral ai.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|minimax.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|monica-hq.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Netflix.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|NotebookLM.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Notion .png|launcher-icon
+P|${HOME}/.local/share/applications/icons|OpenClaw.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Perplexity ai.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Raindrop.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Platzi.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Qwen ai.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|TickTick.svg|launcher-icon
+P|${HOME}/.local/share/applications/icons|Tigo Sports.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Vix.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|WhatsApp.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|X.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|YouTube.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Z.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Zoom.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Antigravity CLI.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Disk Usage.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Docker.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Hermes.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|OpenClaude.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|OpenCode.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|command-code.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|ncdu.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|omp.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Zero.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|icon.png|launcher-icon
+P|${HOME}/.local/share/applications/icons|Gmail.png|launcher-icon

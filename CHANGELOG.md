@@ -15,6 +15,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Added
 
+- feat: add manifest-driven launcher cleanup ([#62](https://github.com/robert-flo/Valhalla/pull/62)). <!-- changelog-pr:62 -->
+
 - docs: record top-why utility ([#57](https://github.com/robert-flo/Valhalla/pull/57)). <!-- changelog-pr:57 -->
 
 - chore: add libhandy for Meld ([#51](https://github.com/robert-flo/Valhalla/pull/51)). <!-- changelog-pr:51 -->
