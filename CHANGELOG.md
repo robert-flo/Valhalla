@@ -35,6 +35,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Changed
 
+- feat: harden Git and RavnVM Make workflows ([#47](https://github.com/robert-flo/Valhalla/pull/47)). <!-- changelog-pr:47 -->
+
 - Restore the stable RavnVM experience ([#38](https://github.com/robert-flo/Valhalla/pull/38)). <!-- changelog-pr:38 -->
 
 - Replace automatic changelog commits with local generation and CI validation ([#37](https://github.com/robert-flo/Valhalla/pull/37)). <!-- changelog-pr:37 -->
