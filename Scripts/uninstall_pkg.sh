@@ -26,13 +26,19 @@ while IFS= read -r pkg; do
   [[ -n $pkg ]] || continue
   if pacman -Q "$pkg" &> /dev/null; then
     print_info "Removing explicitly installed package: $pkg"
+    echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
+    print_info "Package manager output"
+    echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
     sudo pacman -R --noconfirm "$pkg"
+    echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
+    print_info "End of package manager output"
     ((removed += 1))
   else
     print_info "Already absent; leaving unchanged: $pkg"
     ((skipped += 1))
   fi
 done < "$listPkg"
+print_section "Rollback result"
 if ((removed == 0)); then
   print_success "Rollback not required: no packages from this run are currently installed"
 else
