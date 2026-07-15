@@ -314,6 +314,7 @@ run_binaries_menu() {
     echo -e "  ${GREEN}q${NC}  ${RAVN_ICON[ui_arrow_left]}  Back"
     printf '%b' "${LIGHT_GRAY}Selection:${NC} "
     read -r choice
+    echo ""
     case "$choice" in
       1)
         install_all_binaries || true
