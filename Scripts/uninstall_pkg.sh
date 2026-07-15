@@ -16,7 +16,7 @@ source "${scrDir}/global_fn.sh"
 removed=0
 skipped=0
 print_section "${ICON_CLEANING} RaVN package rollback"
-print_info "Run record: ${listPkg##*/}"
+print_info "Run record: $listPkg"
 while IFS= read -r pkg; do
   pkg="${pkg%%#*}"
   pkg="${pkg//[[:space:]]/}"
