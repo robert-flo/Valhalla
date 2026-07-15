@@ -96,6 +96,8 @@ rollback_applications_from_menu() {
                                                                                                   return 0
   }
   print_info "Rolling back latest application run: ${run_file##*/}"
+  print_info "Packages recorded in this run:"
+  sed 's/^/  /' "$run_file"
   read -r -p "Continue? [y/N] " choice
   [[ $choice == y || $choice == Y ]] || {
                                           print_info "Rollback cancelled"
