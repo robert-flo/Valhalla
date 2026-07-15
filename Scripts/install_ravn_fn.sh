@@ -101,6 +101,8 @@ rollback_applications_from_menu() {
   print_info "Only the packages listed below will be affected; no other packages will be touched"
   print_section "Packages selected for rollback"
   sed 's/^/  /' "$run_file"
+  echo ""
+  echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
   read -r -p "Continue? [y/N] " choice
   [[ $choice == y || $choice == Y ]] || {
                                           print_info "Rollback cancelled"
