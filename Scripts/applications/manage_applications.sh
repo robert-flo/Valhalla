@@ -7,6 +7,17 @@ PACKAGE_INSTALLER="${SCRIPT_DIR}/../install_pkg.sh"
 PACKAGE_LIST="${SCRIPT_DIR}/../configurationspkg_core_RaVN.lst"
 RUN_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/ravn/applications"
 
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/../global_fn.sh"
+
+print_application_test_context() {
+  print_section "${RAVN_ICON[ui_check]} RaVN application package audit"
+  print_info "Manifest: ${PACKAGE_LIST#"${SCRIPT_DIR}/../"}"
+  print_info "Mode: dry-run; no packages will be installed or removed"
+  print_info "[skip] means the package is already installed"
+  print_info "[queue] means the package is available and would be installed"
+}
+
 if [[ ! -x $PACKAGE_INSTALLER ]]; then
   echo "Applications installer not found: ${PACKAGE_INSTALLER}" >&2
   exit 1
@@ -14,6 +25,7 @@ fi
 
 case "${1:-test}" in
   test | --test)
+    print_application_test_context
     flg_DryRun=1 bash "$PACKAGE_INSTALLER" "$PACKAGE_LIST"
     ;;
   install | --install)
