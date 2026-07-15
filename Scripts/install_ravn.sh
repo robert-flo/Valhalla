@@ -455,8 +455,7 @@ Commands:
   binaries           Install the RaVN Binaries category
   configurations     Install the RaVN Configurations overlay
   applications       Install the RaVN Applications category
-  rollback-applications
-    <run-file>         Roll back explicitly installed packages from a run
+  rollback-applications <run-file>  Roll back packages from a run
   test, --test       Audit launcher artifacts declared in the manifest
   clean, --clean     Remove declared launcher artifacts after confirmation
   dry-run, --dry-run Show what installation would do without modifying $HOME
