@@ -1,6 +1,48 @@
-# RaVN configuration resources.
-# Binaries under Configs_RaVN/.local/bin are managed by the Binaries category.
+# RaVN configuration overlay. RaVN always takes precedence over any
+# existing resource at the destination; the prior file is backed up.
 # flag|destination|artifact|dependency
-S|${HOME}/.config|waybar2|waybar
+P|${HOME}/.config/waybar|config.jsonc|waybar
+P|${HOME}/.config/waybar|style.css|waybar
+P|${HOME}/.config/waybar|theme.css|waybar
+P|${HOME}/.config/waybar|user-style.css|waybar
 S|${HOME}/.local/share|waybar|waybar
-S|${HOME}/.local/share|applications|bash
+
+# RaVN desktop application resources.
+P|${HOME}/.local/share/applications|Alacritty.desktop|bash
+P|${HOME}/.local/share/applications|avahi-discover.desktop|bash
+P|${HOME}/.local/share/applications|bssh.desktop|bash
+P|${HOME}/.local/share/applications|btop.desktop|bash
+P|${HOME}/.local/share/applications|bvnc.desktop|bash
+P|${HOME}/.local/share/applications|cmake-gui.desktop|bash
+P|${HOME}/.local/share/applications|cups.desktop|bash
+P|${HOME}/.local/share/applications|dropbox.desktop|bash
+P|${HOME}/.local/share/applications|electron34.desktop|bash
+P|${HOME}/.local/share/applications|electron36.desktop|bash
+P|${HOME}/.local/share/applications|electron37.desktop|bash
+P|${HOME}/.local/share/applications|fcitx5-configtool.desktop|bash
+P|${HOME}/.local/share/applications|fcitx5-wayland-launcher.desktop|bash
+P|${HOME}/.local/share/applications|foot-server.desktop|bash
+P|${HOME}/.local/share/applications|footclient.desktop|bash
+P|${HOME}/.local/share/applications|imv.desktop|bash
+P|${HOME}/.local/share/applications|java-java-openjdk.desktop|bash
+P|${HOME}/.local/share/applications|jconsole-java-openjdk.desktop|bash
+P|${HOME}/.local/share/applications|jshell-java-openjdk.desktop|bash
+P|${HOME}/.local/share/applications|kbd-layout-viewer5.desktop|bash
+P|${HOME}/.local/share/applications|kcm_fcitx5.desktop|bash
+P|${HOME}/.local/share/applications|kcm_kaccounts.desktop|bash
+P|${HOME}/.local/share/applications|kvantummanager.desktop|bash
+P|${HOME}/.local/share/applications|limine-snapper-restore.desktop|bash
+P|${HOME}/.local/share/applications|lstopo.desktop|bash
+P|${HOME}/.local/share/applications|mpv.desktop|bash
+P|${HOME}/.local/share/applications|org.fcitx.Fcitx5.desktop|bash
+P|${HOME}/.local/share/applications|org.fcitx.fcitx5-config-qt.desktop|bash
+P|${HOME}/.local/share/applications|org.fcitx.fcitx5-migrator.desktop|bash
+P|${HOME}/.local/share/applications|org.fcitx.fcitx5-qt5-gui-wrapper.desktop|bash
+P|${HOME}/.local/share/applications|org.fcitx.fcitx5-qt6-gui-wrapper.desktop|bash
+P|${HOME}/.local/share/applications|qv4l2.desktop|bash
+P|${HOME}/.local/share/applications|qvidcap.desktop|bash
+P|${HOME}/.local/share/applications|typora.desktop|bash
+P|${HOME}/.local/share/applications|uuctl.desktop|bash
+P|${HOME}/.local/share/applications|wiremix.desktop|bash
+P|${HOME}/.local/share/applications|xgps.desktop|bash
+P|${HOME}/.local/share/applications|xgpsspeed.desktop|bash
