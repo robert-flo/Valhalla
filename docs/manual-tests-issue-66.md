@@ -111,6 +111,17 @@ Verifica que:
 
 ## 5. Configurations, precedencia y backup
 
+Las fuentes RaVN deben estar separadas de las fuentes upstream:
+
+```text
+Configs/       # recursos upstream
+Configs_RaVN/  # recursos propiedad de RaVN
+```
+
+Confirma que el manifiesto de la categoría y sus scripts usan
+`Configs_RaVN`, y que `Scripts/restore_cfg.psv` no contiene una sección
+`RaVN` mezclada.
+
 Prepara una configuración upstream simulada antes de instalar:
 
 ```bash

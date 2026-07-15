@@ -75,7 +75,7 @@ fi
 # └──────────────────────────────────────────────────────────────────────────────┘
 
 # shellcheck disable=SC2034
-script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd -P)
 script_name=$(basename "${BASH_SOURCE[0]}")
 
 # ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -140,19 +140,19 @@ parse_params() {
 
   while :; do
     case "${1-}" in
-    -h | --help) usage ;;
-    -v | --verbose) set -x ;;
-    --no-color) : ;;
-    -r | --repo)
-      repo_dir="${2-}"
-      shift
-      ;;
-    -B | --base)
-      base="${2-}"
-      shift
-      ;;
-    -?*) die "Unknown option: $1" ;;
-    *) break ;;
+      -h | --help) usage ;;
+      -v | --verbose) set -x ;;
+      --no-color) : ;;
+      -r | --repo)
+        repo_dir="${2-}"
+        shift
+        ;;
+      -B | --base)
+        base="${2-}"
+        shift
+        ;;
+      -?*) die "Unknown option: $1" ;;
+      *) break ;;
     esac
     shift
   done
@@ -181,13 +181,13 @@ print_header "${ICON_ISSUE} $script_name"
 
 # Check if GitHub CLI is installed
 print_section "${ICON_GEAR} [1/4] Checking dependencies"
-if ! command -v gh &>/dev/null; then
+if ! command -v gh &> /dev/null; then
   die "GitHub CLI (${CYAN}gh${NC}) is not installed or not in PATH. Install it from: https://cli.github.com"
 fi
 print_success "GitHub CLI found"
 
 # Check if git is installed
-if ! command -v git &>/dev/null; then
+if ! command -v git &> /dev/null; then
   die "Git is not installed or not in PATH"
 fi
 print_success "Git found"
@@ -209,7 +209,7 @@ else
 fi
 
 # Verify we're in a git repository
-if ! git rev-parse --git-dir >/dev/null 2>&1; then
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
   die "Not a git repository. Use ${CYAN}-r, --repo${NC} to specify the repository path."
 fi
 
@@ -220,7 +220,7 @@ fi
 print_section "${ICON_ISSUE} [2/4] Fetching issue #$issue_num from GitHub"
 
 # Try to get issue information
-issue_data=$(gh issue view "$issue_num" --json "number,title,state" 2>/dev/null) || {
+issue_data=$(gh issue view "$issue_num" --json "number,title,state" 2> /dev/null) || {
   die "Could not fetch issue #${CYAN}$issue_num${NC}. Does it exist? (Check your repo context with ${CYAN}gh repo set-default${NC})"
 }
 

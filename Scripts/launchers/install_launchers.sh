@@ -10,7 +10,7 @@ LAUNCHERS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ICON_DIR="${HOME}/.local/share/applications/icons"
 APPS_DIR="${HOME}/.local/share/applications"
 OMARCHY_BIN="${HOME}/.local/share/omarchy/bin"
-ICON_SOURCE_DIR="${LAUNCHERS_DIR}/../../Configs/.local/share/applications/icons"
+ICON_SOURCE_DIR="${LAUNCHERS_DIR}/../../Configs_RaVN/.local/share/applications/icons"
 ICON_MANIFEST="${LAUNCHERS_DIR}/restore_launchers.psv"
 
 # RaVN launchers/bin is self-contained; omarchy bin is optional fallback

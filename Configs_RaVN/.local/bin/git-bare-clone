@@ -147,15 +147,15 @@ parse_params() {
 
   while :; do
     case "${1-}" in
-    -h | --help) usage ;;
-    -v | --verbose) set -x ;;
-    --no-color) : ;;
-    -w | --worktrees-dir)
-      worktrees_base="${2-}"
-      shift
-      ;;
-    -?*) die "Unknown option: $1" ;;
-    *) break ;;
+      -h | --help) usage ;;
+      -v | --verbose) set -x ;;
+      --no-color) : ;;
+      -w | --worktrees-dir)
+        worktrees_base="${2-}"
+        shift
+        ;;
+      -?*) die "Unknown option: $1" ;;
+      *) break ;;
     esac
     shift
   done
@@ -176,15 +176,15 @@ normalize_repo_url() {
   local input="$1"
 
   case "$input" in
-  http://* | https://* | ssh://* | git://* | git@*:* | /* | ./* | ../*)
-    printf '%s\n' "$input"
-    ;;
-  */*)
-    printf 'git@github.com:%s.git\n' "${input%.git}"
-    ;;
-  *)
-    printf '%s\n' "$input"
-    ;;
+    http://* | https://* | ssh://* | git://* | git@*:* | /* | ./* | ../*)
+      printf '%s\n' "$input"
+      ;;
+    */*)
+      printf 'git@github.com:%s.git\n' "${input%.git}"
+      ;;
+    *)
+      printf '%s\n' "$input"
+      ;;
   esac
 }
 
@@ -215,7 +215,7 @@ print_success "Bare repo cloned to ${GRAY}$bare_dir${NC}"
 
 # ── Step 2/5: Configure fetch refspec ────────────────────────────────────────
 print_section "${ICON_GEAR} [2/5] Configuring remote fetch refs"
-pushd "$bare_dir" >/dev/null
+pushd "$bare_dir" > /dev/null
 git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
 print_success "Fetch refspec configured"
 
@@ -223,12 +223,12 @@ print_success "Fetch refspec configured"
 print_section "${ICON_ARROW} [3/5] Fetching remote tracking refs"
 git fetch origin
 print_success "All remote refs fetched"
-popd >/dev/null
+popd > /dev/null
 
 # ── Step 4/5: Create worktrees directory with .git pointer ───────────────────
 print_section "${ICON_FOLDER} [4/5] Setting up worktrees directory"
 mkdir -p "$worktrees_dir"
-echo "gitdir: $bare_dir" >"$worktrees_dir/.git"
+echo "gitdir: $bare_dir" > "$worktrees_dir/.git"
 print_success "Worktrees root created at ${GRAY}$worktrees_dir${NC}"
 
 # ── Step 5/5: Create all worktrees with upstream tracking ────────────────────
@@ -241,13 +241,13 @@ mapfile -t branches < <(
     sed 's|^refs/remotes/origin/||'
 )
 
-pushd "$worktrees_dir" >/dev/null
+pushd "$worktrees_dir" > /dev/null
 for branch in "${branches[@]}"; do
   print_step "${CYAN}$branch${NC}"
   git worktree add "$branch" "$branch"
   git -C "$branch" branch --set-upstream-to="origin/$branch" "$branch"
 done
-popd >/dev/null
+popd > /dev/null
 
 # ┌──────────────────────────────────────────────────────────────────────────────┐
 # │ Summary                                                                      │

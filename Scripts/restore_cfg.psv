@@ -146,18 +146,3 @@ P|${HOME}/.config/hypr|hypridle.conf|hypridle
 
  Bluelight filter daemon 
 P|${HOME}/.config/hypr|hyprsunset.conf|hyprsunset
-
-# --------------------------------------------------- // RaVN
-
-# Waybar
-P|${HOME}/.config/waybar|user-style.css config.jsonc theme.css style.css|waybar
-I|${HOME}/.config/waybar|modules styles layouts menus|waybar
-S|${HOME}/.local/share|waybar|waybar
-
-# CLI utilities
-O|${HOME}/.local/bin|ravn-dot|bash fzf
-O|${HOME}/.local/bin|git-setup global_fn.sh git-bare-clone git-create-worktree git-issue-worktree meld-comparisons top-why|git github-cli gnupg openssh jq meld python
-
-# Desktop launcher artifacts
-# Populate the managed launcher assets without replacing unrelated applications.
-P|${HOME}/.local/share|applications|bash

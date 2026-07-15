@@ -4,7 +4,7 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MANIFEST="${SCRIPT_DIR}/restore_configurations.psv"
-SOURCE_ROOT="${SCRIPT_DIR}/../../Configs"
+SOURCE_ROOT="${SCRIPT_DIR}/../../Configs_RaVN"
 
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/../global_fn.sh"
