@@ -16,11 +16,10 @@ load_paths() {
   local flag=""
   local destination=""
   local artifact=""
-  local owner=""
   local resolved=""
 
-  while IFS='|' read -r flag destination artifact owner || [[ -n $flag ]]; do
-    [[ $flag == P && $owner == ravn-binary && -n $destination && -n $artifact ]] || continue
+  while IFS='|' read -r flag destination artifact _ || [[ -n $flag ]]; do
+    [[ $flag == P && -n $destination && -n $artifact ]] || continue
     destination="$(resolve_path "$destination")"
     resolved="$(realpath -m -- "$destination/$artifact")"
     case "$resolved" in

@@ -4,29 +4,13 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MANIFEST="${SCRIPT_DIR}/restore_binaries.psv"
-SOURCE_DIR="${SCRIPT_DIR}/../../Configs_RaVN/.local/bin"
-DESTINATION="${HOME}/.local/bin"
+SOURCE_DIR="${SCRIPT_DIR}/../../Configs_RaVN"
+RESTORE_SCRIPT="${SCRIPT_DIR}/../restore_cfg.sh"
 
-load_manifest() {
-  local flag=""
-  local _destination=""
-  local artifact=""
-  local owner=""
+if [[ ! -f $RESTORE_SCRIPT || ! -d $SOURCE_DIR ]]; then
+  echo "[binaries] error: restore sources are unavailable" >&2
+  exit 1
+fi
 
-  while IFS='|' read -r flag _destination artifact owner || [[ -n $flag ]]; do
-    [[ $flag == P && $owner == ravn-binary && -n $artifact ]] || continue
-    printf '%s\n' "$artifact"
-  done < "$MANIFEST"
-}
-
-mkdir -p "$DESTINATION"
-while IFS= read -r artifact; do
-  source="${SOURCE_DIR}/${artifact}"
-  if [[ ! -f $source ]]; then
-    echo "[binaries] error: declared binary not found: $artifact" >&2
-    exit 1
-  fi
-  cp -p -- "$source" "${DESTINATION}/${artifact}"
-done < <(load_manifest)
-
+flg_DryRun=0 bash "$RESTORE_SCRIPT" "$MANIFEST" "$SOURCE_DIR"
 echo "[binaries] installed declared RaVN binaries"
