@@ -31,9 +31,13 @@ while IFS= read -r pkg; do
     ((skipped += 1))
   fi
 done < "$listPkg"
+echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
+print_section "📋  Resultado del rollback"
 if ((removed == 0)); then
   print_success "Rollback no requerido — $skipped ya estaban ausentes"
 else
-  print_success "Rollback completo — $removed paquetes removidos, $skipped ya estaban ausentes"
+  if ((removed == 1)); then removed_label="paquete removido"; else removed_label="paquetes removidos"; fi
+  if ((skipped == 1)); then skipped_label="1 ya estaba ausente"; else skipped_label="$skipped ya estaban ausentes"; fi
+  print_success "Rollback completo — $removed $removed_label, $skipped_label"
 fi
 print_info "Detalle: $listPkg"
