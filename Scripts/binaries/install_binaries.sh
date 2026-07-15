@@ -5,7 +5,7 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MANIFEST="${SCRIPT_DIR}/restore_binaries.psv"
 SOURCE_DIR="${SCRIPT_DIR}/../../Configs_RaVN"
-RESTORE_SCRIPT="${SCRIPT_DIR}/../restore_cfg.sh"
+RESTORE_SCRIPT="${SCRIPT_DIR}/restore_binaries.sh"
 
 if [[ ! -f $RESTORE_SCRIPT || ! -d $SOURCE_DIR ]]; then
   echo "[binaries] error: restore sources are unavailable" >&2
