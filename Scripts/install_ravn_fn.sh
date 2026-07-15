@@ -98,6 +98,7 @@ rollback_applications_from_menu() {
   print_section "${ICON_CLEANING} Rollback application run"
   print_info "Rolling back the latest Applications Install everything run"
   print_info "Run record: $run_file"
+  echo ""
   print_info "Only the packages listed below will be affected; no other packages will be touched"
   print_section "Packages selected for rollback"
   sed 's/^/  /' "$run_file"
