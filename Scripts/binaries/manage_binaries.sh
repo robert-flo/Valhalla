@@ -16,11 +16,10 @@ load_paths() {
   local flag=""
   local destination=""
   local artifact=""
-  local owner=""
   local resolved=""
 
-  while IFS='|' read -r flag destination artifact owner || [[ -n $flag ]]; do
-    [[ $flag == P && $owner == ravn-binary && -n $destination && -n $artifact ]] || continue
+  while IFS='|' read -r flag destination artifact _ || [[ -n $flag ]]; do
+    [[ $flag == P && -n $destination && -n $artifact ]] || continue
     destination="$(resolve_path "$destination")"
     resolved="$(realpath -m -- "$destination/$artifact")"
     case "$resolved" in
@@ -48,6 +47,8 @@ audit_binaries() {
       ((missing += 1))
     fi
   done < <(load_paths)
+  echo ""
+  echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
   print_info "Present: $present"
   print_info "Missing: $missing"
   ((missing == 0))
@@ -71,6 +72,8 @@ clean_binaries() {
     print_info "Dry run: no binaries were removed"
     return 0
   fi
+  echo ""
+  echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
   read -r -p "Type yes to continue: " answer
   [[ $answer == yes ]] || {
     print_info "Cleanup cancelled"
@@ -80,6 +83,8 @@ clean_binaries() {
     rm -f -- "$path"
     print_success "Removed ${path#"$HOME"/}"
   done
+  echo ""
+  echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
 }
 
 case "${1:-test}" in
