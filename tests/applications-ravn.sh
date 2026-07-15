@@ -23,7 +23,7 @@ cat > "$FAKE_BIN/pacman" << 'FAKE_PACMAN'
 set -Eeuo pipefail
 case "$1" in
 -Q) grep -Fxq "$2" "$PACKAGE_STATE" ;;
--Si) grep -Fxq "$2" <(printf 'ncdu\ndua-cli\nlibqalculate\ngum\n') ;;
+-Si) grep -Fxq "$2" <(printf 'ncdu\ndua-cli\nlibqalculate\ngum\nnano\n') ;;
 -S)
   shift
   for arg in "$@"; do [[ $arg == -* ]] || printf '%s\n' "$arg" >>"$PACKAGE_STATE"; done
@@ -53,7 +53,7 @@ NO_COLOR=1 bash "$APPLICATIONS_DIR/manage_applications.sh" --dry-run > "$FIXTURE
 grep -Fq 'Dry run: no packages were installed' "$FIXTURE_DIR/dry-run.out" || fail "dry-run reported installation"
 
 bash "$APPLICATIONS_DIR/manage_applications.sh" --install > "$FIXTURE_DIR/install.out"
-[[ $(grep -c '^' "$PACKAGE_STATE") -eq 4 ]] || fail "install did not record explicit packages"
+[[ $(grep -c '^' "$PACKAGE_STATE") -eq 5 ]] || fail "install did not record explicit packages"
 run_file=$(find "$XDG_STATE_HOME" -name '*.installed' -print -quit)
 [[ -f $run_file ]] || fail "installation run record was not created"
 bash "$APPLICATIONS_DIR/manage_applications.sh" --rollback "$run_file"
