@@ -16,6 +16,8 @@ print_application_test_context() {
   print_info "Mode: dry-run; no packages will be installed or removed"
   print_info "[skip] means the package is already installed"
   print_info "[queue] means the package is available and would be installed"
+  print_info "To install queued packages, choose option 1: Install everything"
+  print_section "Existing package installer audit"
 }
 
 if [[ ! -x $PACKAGE_INSTALLER ]]; then
@@ -26,7 +28,15 @@ fi
 case "${1:-test}" in
   test | --test)
     print_application_test_context
-    flg_DryRun=1 bash "$PACKAGE_INSTALLER" "$PACKAGE_LIST"
+    if flg_DryRun=1 bash "$PACKAGE_INSTALLER" "$PACKAGE_LIST"; then
+      echo ""
+      print_success "Audit finished; no packages were changed"
+      print_info "To install queued packages, choose option 1: Install everything"
+    else
+      echo ""
+      print_error "Package audit failed"
+      exit 1
+    fi
     ;;
   install | --install)
     before_file="$(mktemp)"
