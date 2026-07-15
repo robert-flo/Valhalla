@@ -44,6 +44,7 @@ chmod +x "$FAKE_BIN/pacman" "$FAKE_BIN/sudo"
 export PATH="$FAKE_BIN:$PATH"
 export HOME="$FIXTURE_DIR/home"
 export XDG_STATE_HOME="$FIXTURE_DIR/state"
+mkdir -p "$HOME"
 
 NO_COLOR=1 bash "$APPLICATIONS_DIR/manage_applications.sh" --test > "$FIXTURE_DIR/test.out"
 grep -Fq 'Candidate: dua-cli' "$FIXTURE_DIR/test.out" || fail "test did not report a candidate"

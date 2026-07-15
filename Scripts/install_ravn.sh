@@ -14,6 +14,7 @@ CONFIGURATIONS_INSTALLER="${CONFIGURATIONS_DIR}/install_configurations.sh"
 CONFIGURATIONS_MANAGER="${CONFIGURATIONS_DIR}/manage_configurations.sh"
 APPLICATIONS_DIR="${SCRIPT_DIR}/applications"
 APPLICATIONS_MANAGER="${APPLICATIONS_DIR}/manage_applications.sh"
+APPLICATIONS_RUN_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/ravn/applications"
 readonly CATEGORY_BINARIES="Binaries"
 readonly CATEGORY_CONFIGURATIONS="Configurations"
 readonly CATEGORY_APPLICATIONS="Applications"
@@ -258,6 +259,23 @@ test_applications() {
   bash "$APPLICATIONS_MANAGER" --test
 }
 
+rollback_applications_from_menu() {
+  local run_file=""
+  run_file="$(find "$APPLICATIONS_RUN_ROOT" -maxdepth 1 -type f -name '*.installed' -printf '%T@ %p\n' 2> /dev/null |
+    sort -nr | sed -n '1s/^[^ ]* //p')"
+  if [[ -z $run_file ]]; then
+    print_info "No application installation run is available to roll back"
+    return 0
+  fi
+  print_info "Rolling back the latest recorded application run: ${run_file##*/}"
+  read -r -p "Continue? [y/N] " choice
+  [[ $choice == y || $choice == Y ]] || {
+    print_info "Rollback cancelled"
+    return 0
+  }
+  bash "$APPLICATIONS_MANAGER" --rollback "$run_file"
+}
+
 show_launchers_menu() {
   clear || true
   print_header "Desktop launchers"
@@ -391,7 +409,7 @@ run_applications_menu() {
         press_enter_to_continue
         ;;
       3)
-        print_info "Use manage_applications.sh rollback RUN_FILE to target a recorded run"
+        rollback_applications_from_menu || true
         press_enter_to_continue
         ;;
       q | Q) return 0 ;;

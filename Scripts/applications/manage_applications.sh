@@ -15,15 +15,26 @@ is_available() { pacman -Si "$1" &> /dev/null; }
 
 calculate_candidates() {
   local package=""
+  local candidates=0
+  local skipped=0
+  local unavailable=0
+  print_section "${RAVN_ICON[ui_check]} RaVN application package audit"
   while IFS= read -r package; do
     if is_installed "$package"; then
       print_info "Skipping installed package: $package"
+      ((skipped += 1))
     elif is_available "$package"; then
       print_info "Candidate: $package"
+      ((candidates += 1))
     else
       print_warn "Package unavailable: $package"
+      ((unavailable += 1))
     fi
   done < <(packages)
+  print_info "Candidates: $candidates"
+  print_info "Already installed: $skipped"
+  print_info "Unavailable: $unavailable"
+  print_info "Audit complete; no packages were changed"
 }
 
 install_applications() {
