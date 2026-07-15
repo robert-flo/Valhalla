@@ -82,6 +82,8 @@ clean_binaries() {
     rm -f -- "$path"
     print_success "Removed ${path#"$HOME"/}"
   done
+  echo ""
+  echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
 }
 
 case "${1:-test}" in
