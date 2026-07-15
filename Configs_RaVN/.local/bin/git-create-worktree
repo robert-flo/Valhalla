@@ -100,7 +100,7 @@ fi
 # └──────────────────────────────────────────────────────────────────────────────┘
 
 # shellcheck disable=SC2034
-script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd -P)
 
 # Domain-specific icons
 readonly ICON_FOLDER="󰉋"
@@ -146,28 +146,28 @@ parse_params() {
 
   while :; do
     case "${1-}" in
-    -h | --help) usage ;;
-    -v | --verbose) set -x ;;
-    --no-color) : ;;
-    -r | --repo)
-      repo_dir="${2-}"
-      shift
-      ;;
-    -N | --no-create-upstream) create_upstream=0 ;;
-    -b | --branch)
-      branch="${2-}"
-      shift
-      ;;
-    -B | --base)
-      base="${2-}"
-      shift
-      ;;
-    -p | --prefix)
-      prefix="${2-}"
-      shift
-      ;;
-    -?*) die "Unknown option: $1" ;;
-    *) break ;;
+      -h | --help) usage ;;
+      -v | --verbose) set -x ;;
+      --no-color) : ;;
+      -r | --repo)
+        repo_dir="${2-}"
+        shift
+        ;;
+      -N | --no-create-upstream) create_upstream=0 ;;
+      -b | --branch)
+        branch="${2-}"
+        shift
+        ;;
+      -B | --base)
+        base="${2-}"
+        shift
+        ;;
+      -p | --prefix)
+        prefix="${2-}"
+        shift
+        ;;
+      -?*) die "Unknown option: $1" ;;
+      *) break ;;
     esac
     shift
   done
@@ -200,12 +200,12 @@ if [[ -n "$repo_dir" ]]; then
 fi
 
 # Verify we're in a git repository (required for all operations)
-if ! git rev-parse --git-dir >/dev/null 2>&1; then
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
   die "Not a git repository. Use ${CYAN}-r, --repo${NC} to specify the repository path."
 fi
 
 # Extract repository metadata for display before changing directories
-common_dir=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || pwd)
+common_dir=$(git rev-parse --path-format=absolute --git-common-dir 2> /dev/null || pwd)
 common_dir="${common_dir%/.git}"
 repo_name=$(basename "$common_dir")
 

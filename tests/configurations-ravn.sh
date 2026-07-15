@@ -15,7 +15,7 @@ fail() {
 
 HOME="$FIXTURE_DIR/home"
 export HOME
-RAVN_STYLE_SOURCE="${SCRIPT_DIR}/../Configs/.config/waybar/style.css"
+RAVN_STYLE_SOURCE="${SCRIPT_DIR}/../Configs_RaVN/.config/waybar/style.css"
 mkdir -p "$HOME/.config/waybar" "$HOME/.local/share/waybar"
 printf 'preexisting upstream content\n' > "$HOME/.config/waybar/style.css"
 printf 'undeclared\n' > "$HOME/.local/share/waybar/keep-me.txt"

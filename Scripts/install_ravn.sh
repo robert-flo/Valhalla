@@ -2,30 +2,24 @@
 
 set -Eeuo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LAUNCHERS_DIR="${SCRIPT_DIR}/launchers"
-LAUNCHER_INSTALLER="${LAUNCHERS_DIR}/install_launchers.sh"
-LAUNCHER_MANAGER="${LAUNCHERS_DIR}/manage_launchers.sh"
-BINARIES_DIR="${SCRIPT_DIR}/binaries"
-BINARIES_INSTALLER="${BINARIES_DIR}/install_binaries.sh"
-BINARIES_MANAGER="${BINARIES_DIR}/manage_binaries.sh"
-CONFIGURATIONS_DIR="${SCRIPT_DIR}/configurations"
-CONFIGURATIONS_INSTALLER="${CONFIGURATIONS_DIR}/install_configurations.sh"
-CONFIGURATIONS_MANAGER="${CONFIGURATIONS_DIR}/manage_configurations.sh"
-APPLICATIONS_DIR="${SCRIPT_DIR}/applications"
-APPLICATIONS_MANAGER="${APPLICATIONS_DIR}/manage_applications.sh"
-readonly CATEGORY_BINARIES="Binaries"
-readonly CATEGORY_CONFIGURATIONS="Configurations"
-readonly CATEGORY_APPLICATIONS="Applications"
-
 # shellcheck disable=SC1091
-if ! source "${SCRIPT_DIR}/global_fn.sh"; then
+if ! source "$(dirname "${BASH_SOURCE[0]}")/install_ravn_fn.sh"; then
   echo "Error: unable to source global_fn.sh..." >&2
   exit 1
 fi
 
 if [[ $EUID -eq 0 ]]; then
   print_error "Do not run install_ravn.sh as root or with sudo"
+  exit 1
+fi
+
+if [[ -z ${HOME:-} ]]; then
+  HOME="$(getent passwd "$(id -un)" | cut -d: -f6)"
+  export HOME
+fi
+
+if [[ -z ${HOME:-} || $HOME == / || ! -d $HOME || ! -w $HOME ]]; then
+  print_error "Unable to determine a writable home directory for $(id -un)"
   exit 1
 fi
 
@@ -143,7 +137,7 @@ install_everything() {
   local -a results=()
 
   print_header "Install everything"
-  for category in launchers binaries configurations applications; do
+  for category in applications binaries configurations launchers; do
     if install_category "$category"; then
       results+=("$category:${CATEGORY_RESULT}")
     else
@@ -234,7 +228,7 @@ clean_configurations() {
 }
 
 validate_application_sources() {
-  [[ -f $APPLICATIONS_MANAGER && -f ${APPLICATIONS_DIR}/pkg_ravn.lst ]]
+  [[ -f $APPLICATIONS_MANAGER && -f ${SCRIPT_DIR}/install_pkg.sh && -f ${SCRIPT_DIR}/uninstall_pkg.sh && -f ${SCRIPT_DIR}/configurationspkg_core_RaVN.lst ]]
 }
 
 install_all_applications() {
@@ -246,6 +240,23 @@ install_all_applications() {
 test_applications() {
   validate_application_sources || return 1
   bash "$APPLICATIONS_MANAGER" --test
+}
+
+rollback_applications_from_menu() {
+  local run_file=""
+  run_file="$(find "$APPLICATIONS_RUN_ROOT" -maxdepth 1 -type f -name '*.installed' -printf '%T@ %p\n' 2> /dev/null |
+    sort -nr | sed -n '1s/^[^ ]* //p')"
+  if [[ -z $run_file ]]; then
+    print_info "No application installation run is available to roll back"
+    return 0
+  fi
+  print_info "Rolling back the latest recorded application run: ${run_file##*/}"
+  read -r -p "Continue? [y/N] " choice
+  [[ $choice == y || $choice == Y ]] || {
+    print_info "Rollback cancelled"
+    return 0
+  }
+  bash "$APPLICATIONS_MANAGER" --rollback "$run_file"
 }
 
 show_launchers_menu() {
@@ -369,6 +380,7 @@ run_applications_menu() {
     echo -e "  ${GREEN}2${NC}  ${RAVN_ICON[ui_check]}  Run tests"
     echo -e "  ${GREEN}3${NC}  ${ICON_CLEANING}  Rollback installed"
     echo -e "  ${GREEN}q${NC}  ${RAVN_ICON[ui_arrow_left]}  Back"
+    echo ""
     printf '%b' "${LIGHT_GRAY}Selection:${NC} "
     read -r choice
     case "$choice" in
@@ -381,7 +393,7 @@ run_applications_menu() {
         press_enter_to_continue
         ;;
       3)
-        print_info "Use manage_applications.sh rollback RUN_FILE to target a recorded run"
+        rollback_applications_from_menu || true
         press_enter_to_continue
         ;;
       q | Q) return 0 ;;
@@ -395,12 +407,12 @@ run_applications_menu() {
 
 show_main_menu() {
   clear || true
-  print_header "Ravn installer"
+  print_ravn_banner "RaVN Installer"
   print_section "${RAVN_ICON[ui_command]} Choose an installation step"
-  echo -e "  ${GREEN}1${NC}  ${RAVN_ICON[ui_package]}  Desktop launchers"
+  echo -e "  ${GREEN}1${NC}  ${RAVN_ICON[ui_package]}  Applications"
   echo -e "  ${GREEN}2${NC}  ${RAVN_ICON[ui_terminal]}  Binaries"
   echo -e "  ${GREEN}3${NC}  ${RAVN_ICON[ui_gear]}  Configurations"
-  echo -e "  ${GREEN}4${NC}  ${RAVN_ICON[ui_package]}  Applications"
+  echo -e "  ${GREEN}4${NC}  ${RAVN_ICON[ui_package]}  Desktop launchers"
   echo -e "  ${GREEN}5${NC}  ${RAVN_ICON[ui_rocket]}  Install everything"
   echo -e "  ${GREEN}q${NC}  ${RAVN_ICON[ui_close]}  Exit"
   echo ""
@@ -416,7 +428,7 @@ run_main_menu() {
 
     case "$choice" in
       1)
-        run_launchers_menu
+        run_applications_menu
         ;;
       2)
         run_binaries_menu
@@ -425,7 +437,7 @@ run_main_menu() {
         run_configurations_menu
         ;;
       4)
-        run_applications_menu
+        run_launchers_menu
         ;;
       5)
         install_everything || true
@@ -450,17 +462,16 @@ print_usage() {
 Usage: install_ravn.sh [COMMAND]
 
 Commands:
-  all, --all         Install all available RaVN categories
-  launchers          Install all Desktop launchers
-  binaries           Install the RaVN Binaries category
-  configurations     Install the RaVN Configurations overlay
-  applications       Install the RaVN Applications category
-  rollback-applications <run-file>
-                     Roll back explicitly installed packages from a run
-  test, --test       Audit launcher artifacts declared in the manifest
-  clean, --clean     Remove declared launcher artifacts after confirmation
-  dry-run, --dry-run Show what installation would do without modifying $HOME
-  help, --help       Show this help
+  all, --all ....................... Install all available RaVN categories
+  launchers ......................... Install all Desktop launchers
+  binaries .......................... Install the RaVN Binaries category
+  configurations .................... Install the RaVN Configurations overlay
+  applications ...................... Install the RaVN Applications category
+  rollback-applications <run-file> .. Roll back packages from a run
+  test, --test ...................... Audit launcher artifacts declared in the manifest
+  clean, --clean .................... Remove declared launcher artifacts after confirmation
+  dry-run, --dry-run ................ Show what installation would do without modifying $HOME
+  help, --help, -h .................. Show this help
 
 With no command, the interactive installer menu is shown.
 USAGE
@@ -473,6 +484,11 @@ run_dry_run() {
   print_info "Would write only artifacts declared by launchers/restore_launchers.psv"
   print_info "No files were modified"
 }
+
+# Re-source the helper library after the menu declarations so shared helpers
+# remain the single implementation used by the entry point.
+# shellcheck disable=SC1091
+source "$(dirname "${BASH_SOURCE[0]}")/install_ravn_fn.sh"
 
 main() {
   case "${1:-menu}" in

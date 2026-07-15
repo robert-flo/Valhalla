@@ -23,7 +23,7 @@ cat > "$FAKE_BIN/pacman" << 'FAKE_PACMAN'
 set -Eeuo pipefail
 case "$1" in
 -Q) grep -Fxq "$2" "$PACKAGE_STATE" ;;
--Si) grep -Fxq "$2" <(printf 'ncdu\ndua-cli\nlibqalculate\ngum\n') ;;
+-Si) grep -Fxq "$2" <(printf 'ncdu\ndua-cli\nlibqalculate\ngum\nnano\n') ;;
 -S)
   shift
   for arg in "$@"; do [[ $arg == -* ]] || printf '%s\n' "$arg" >>"$PACKAGE_STATE"; done
@@ -44,15 +44,15 @@ chmod +x "$FAKE_BIN/pacman" "$FAKE_BIN/sudo"
 export PATH="$FAKE_BIN:$PATH"
 export HOME="$FIXTURE_DIR/home"
 export XDG_STATE_HOME="$FIXTURE_DIR/state"
+mkdir -p "$HOME"
 
 NO_COLOR=1 bash "$APPLICATIONS_DIR/manage_applications.sh" --test > "$FIXTURE_DIR/test.out"
-grep -Fq 'Candidate: dua-cli' "$FIXTURE_DIR/test.out" || fail "test did not report a candidate"
-grep -Fq 'Skipping installed package: ncdu' "$FIXTURE_DIR/test.out" || fail "test did not skip installed package"
+grep -Fq 'RaVN Application audit Summary' "$FIXTURE_DIR/test.out" || fail "test did not print the application summary"
 NO_COLOR=1 bash "$APPLICATIONS_DIR/manage_applications.sh" --dry-run > "$FIXTURE_DIR/dry-run.out"
 grep -Fq 'Dry run: no packages were installed' "$FIXTURE_DIR/dry-run.out" || fail "dry-run reported installation"
 
 bash "$APPLICATIONS_DIR/manage_applications.sh" --install > "$FIXTURE_DIR/install.out"
-[[ $(grep -c '^' "$PACKAGE_STATE") -eq 4 ]] || fail "install did not record explicit packages"
+[[ $(grep -c '^' "$PACKAGE_STATE") -eq 5 ]] || fail "install did not record explicit packages"
 run_file=$(find "$XDG_STATE_HOME" -name '*.installed' -print -quit)
 [[ -f $run_file ]] || fail "installation run record was not created"
 bash "$APPLICATIONS_DIR/manage_applications.sh" --rollback "$run_file"

@@ -27,7 +27,7 @@ IFS='|'
 # remove blacklisted packages #
 #-----------------------------#
 if [ -f "${scrDir}/pkg_black.lst" ]; then
-    grep -v -f <(grep -v '^#' "${scrDir}/pkg_black.lst" | sed 's/#.*//;s/ //g;/^$/d') <(sed 's/#.*//' "${scrDir}/install_pkg.lst") >"${scrDir}/install_pkg_filtered.lst"
+    grep -v -f <(grep -v '^#' "${scrDir}/pkg_black.lst" | sed 's/#.*//;s/ //g;/^$/d') <(sed 's/#.*//' "${scrDir}/install_pkg.lst") > "${scrDir}/install_pkg_filtered.lst"
     mv "${scrDir}/install_pkg_filtered.lst" "${scrDir}/install_pkg.lst"
 fi
 
@@ -35,7 +35,7 @@ while read -r pkg deps; do
     pkg="${pkg// /}"
     if [ -z "${pkg}" ]; then
         continue
-    fi
+  fi
 
     if [ -n "${deps}" ]; then
         deps="${deps%"${deps##*[![:space:]]}"}"
@@ -44,30 +44,35 @@ while read -r pkg deps; do
             if [ -z "${pass}" ]; then
                 if pkg_installed "${cdep}"; then
                     pass=1
-                else
+        else
                     break
-                fi
-            fi
-        done < <(xargs -n1 <<<"${deps}")
+        fi
+      fi
+    done     < <(xargs -n1 <<< "${deps}")
 
         if [[ ${pass} -ne 1 ]]; then
             print_log -warn "missing" "dependency [ ${deps} ] for ${pkg}..."
+            count_fail "$pkg"
             continue
-        fi
     fi
+  fi
 
     if pkg_installed "${pkg}"; then
         print_log -y "[skip] " "${pkg}"
-    elif pkg_available "${pkg}"; then
+        count_skip "$pkg"
+  elif   pkg_available "${pkg}"; then
         repo=$(pacman -Si "${pkg}" | awk -F ': ' '/Repository / {print $2}' | tr '\n' ' ')
         print_log -b "[queue] " "${pkg}" -b " :: " -g "${repo}"
+        count_ok "$pkg"
         archPkg+=("${pkg}")
-    elif aur_available "${pkg}"; then
+  elif   aur_available "${pkg}"; then
         print_log -b "[queue] " "${pkg}" -b " :: " -g "aur"
+        count_ok "$pkg"
         aurhPkg+=("${pkg}")
-    else
+  else
         print_log -r "[error] " "unknown package ${pkg}..."
-    fi
+        count_fail "$pkg"
+  fi
 done < <(cut -d '#' -f 1 "${listPkg}")
 
 IFS=${ofs}
@@ -82,14 +87,15 @@ install_packages() {
         if [ "${flg_DryRun}" -eq 1 ]; then
             for pkg in "${pkg_array[@]}"; do
                 print_log -b "[pkg] " "${pkg}"
-            done
-        else
+      done
+    else
             $install_cmd ${use_default:+"$use_default"} -S "${pkg_array[@]}"
-        fi
     fi
+  fi
 }
 
 echo ""
 install_packages archPkg "arch" "sudo pacman"
 echo ""
 install_packages aurhPkg "aur" "${aurhlpr}"
+print_summary "Application audit"

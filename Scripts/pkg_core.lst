@@ -88,6 +88,7 @@ hyprquery                                              # A CLI utility for query
 hypridle                                               # idle daemon
 
 # --------------------------------------------------- // RaVN
+nano                                                   # RaVN text editor
 
 # --------------------------------------------------- System
 wttrbar                                                # for weather

@@ -6,11 +6,21 @@
 
 set -uo pipefail
 
+if [[ -z ${HOME:-} ]]; then
+  HOME="$(getent passwd "$(id -un)" | cut -d: -f6)"
+  export HOME
+fi
+
+if [[ -z ${HOME:-} || $HOME == / || ! -d $HOME || ! -w $HOME ]]; then
+  echo "[launchers] error: unable to determine a writable home directory" >&2
+  exit 1
+fi
+
 LAUNCHERS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ICON_DIR="${HOME}/.local/share/applications/icons"
 APPS_DIR="${HOME}/.local/share/applications"
 OMARCHY_BIN="${HOME}/.local/share/omarchy/bin"
-ICON_SOURCE_DIR="${LAUNCHERS_DIR}/../../Configs/.local/share/applications/icons"
+ICON_SOURCE_DIR="${LAUNCHERS_DIR}/../../Configs_RaVN/.local/share/applications/icons"
 ICON_MANIFEST="${LAUNCHERS_DIR}/restore_launchers.psv"
 
 # RaVN launchers/bin is self-contained; omarchy bin is optional fallback

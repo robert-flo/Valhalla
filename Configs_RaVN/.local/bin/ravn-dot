@@ -34,7 +34,7 @@ print_error()   { echo -e "  ${RED}${ICON_CROSS}${NC} $1"; }
 print_warn()    { echo -e "  ${YELLOW}${ICON_WARN}${NC} $1"; }
 print_info()    { echo -e "  ${BLUE}${ICON_INFO}${NC} $1"; }
 
-command_exists() { command -v "$1" >/dev/null 2>&1; }
+command_exists() { command -v "$1" > /dev/null 2>&1; }
 
 # Prevent running with sudo / as root
 if [[ $EUID -eq 0 ]]; then
@@ -48,11 +48,20 @@ fi
 
 validate_environment() {
     print_section "${ICON_GEAR} Validating Environment"
-    [[ -d "$CONFIGS_DIR" ]] || { print_error "Configs not found"; exit 1; }
+    [[ -d "$CONFIGS_DIR" ]] || {
+                                 print_error "Configs not found"
+                                                                  exit 1
+  }
     print_success "Configs directory"
-    [[ -f "$RESTORE_CFG" ]] || { print_error "Manifest not found"; exit 1; }
+    [[ -f "$RESTORE_CFG" ]] || {
+                                 print_error "Manifest not found"
+                                                                   exit 1
+  }
     print_success "Manifest"
-    command_exists fzf || { print_error "fzf required"; exit 1; }
+    command_exists fzf || {
+                            print_error "fzf required"
+                                                        exit 1
+  }
     print_success "fzf"
 }
 
@@ -62,7 +71,9 @@ load_excludes() {
 }
 
 is_excluded() {
-    local f="$1"; for e in "${EXCLUDES[@]}"; do [[ "$f" == "$e" ]] && return 0; done; return 1
+    local f="$1"
+                  for e in "${EXCLUDES[@]}"; do [[ "$f" == "$e" ]] && return 0; done
+                                                                                      return 1
 }
 
 declare -a MANAGED_FILES=()
@@ -83,7 +94,7 @@ build_managed_files() {
         [[ -z "$path" || -z "$cfg" ]] && continue
 
         local path_resolved
-        path_resolved=$(eval echo "$path" 2>/dev/null || echo "")
+        path_resolved=$(eval echo "$path" 2> /dev/null || echo "")
         [[ -z "$path_resolved" ]] && continue
 
         for cfg_chk in $cfg; do
@@ -95,64 +106,70 @@ build_managed_files() {
             if [[ -f "$active" && -f "$template" ]]; then
                 if ! is_excluded "$rel"; then
                     MANAGED_FILES+=("$rel|$active|$template")
-                fi
-            fi
-        done
-    done < "$RESTORE_CFG"
+        fi
+      fi
+    done
+  done   < "$RESTORE_CFG"
 }
 
 detect_differences() {
     DIFFERENT_FILES=()
     for entry in "${MANAGED_FILES[@]}"; do
         IFS='|' read -r rel active template <<< "$entry"
-        if ! diff -q "$template" "$active" >/dev/null 2>&1; then
+        if ! diff -q "$template" "$active" > /dev/null 2>&1; then
             DIFFERENT_FILES+=("$entry")
-        fi
-    done
+    fi
+  done
 }
 
 keep_clean() {
     local active="$1" template="$2" rel="$3"
-    [[ "$DRY_RUN" == true ]] && { print_info "[DRY] Would keep: $rel"; return 0; }
+    [[ "$DRY_RUN" == true ]] && {
+                                  print_info "[DRY] Would keep: $rel"
+                                                                       return 0
+  }
     cp "$active" "$template" && print_success "Updated dotfiles copy from HOME: $rel"
 }
 
 overwrite_home() {
     local active="$1" template="$2" rel="$3"
-    [[ "$DRY_RUN" == true ]] && { print_info "[DRY] Would overwrite: $rel"; return 0; }
+    [[ "$DRY_RUN" == true ]] && {
+                                  print_info "[DRY] Would overwrite: $rel"
+                                                                            return 0
+  }
     cp "$template" "$active" && print_success "Updated \$HOME copy from dotfiles: $rel"
 }
 
 view_diff() {
     local active="$1" template="$2"
     if command_exists hunk; then
-        hunk diff "$template" "$active" 2>/dev/null || \
+        hunk diff "$template" "$active" 2> /dev/null ||
         git diff --no-index --color=always "$template" "$active" | less -R || true
-    else
+  else
         git diff --no-index --color=always "$template" "$active" | less -R || true
-    fi
+  fi
 }
 
 resolve_with_meld() {
     local active="$1" template="$2"
     if command_exists meld; then
         meld "$template" "$active"
-    else
+  else
         print_error "meld is not installed"
         read -rp "  Press enter to continue..."
-    fi
+  fi
 }
 
 resolve_with_nvim() {
     local active="$1" template="$2"
     if command_exists nvim; then
         nvim -d "$template" "$active"
-    elif command_exists vim; then
+  elif   command_exists vim; then
         vim -d "$template" "$active"
-    else
+  else
         print_error "nvim or vim is not installed"
         read -rp "  Press enter to continue..."
-    fi
+  fi
 }
 
 file_menu() {
@@ -176,15 +193,27 @@ file_menu() {
         read -rp "  > " -n 1 c
         echo ""
         case "$c" in
-            k|K) keep_clean "$active" "$template" "$rel"; read -rp "  Continue..." ;;
-            o|O) overwrite_home "$active" "$template" "$rel"; read -rp "  Continue..." ;;
-            d|D) view_diff "$active" "$template"; read -rp "  Press enter to continue..." ;;
-            m|M) resolve_with_meld "$active" "$template" ;;
-            v|V) resolve_with_nvim "$active" "$template" ;;
-            x|X) echo "$rel" >> "$EXCLUDES_FILE"; return 0 ;;
-            s|S|b|B) return 0 ;;
-        esac
-    done
+            k | K)
+                 keep_clean "$active" "$template" "$rel"
+                                                          read -rp "  Continue..."
+                                                                                   ;;
+            o | O)
+                 overwrite_home "$active" "$template" "$rel"
+                                                              read -rp "  Continue..."
+                                                                                       ;;
+            d | D)
+                 view_diff "$active" "$template"
+                                                  read -rp "  Press enter to continue..."
+                                                                                          ;;
+            m | M) resolve_with_meld "$active" "$template" ;;
+            v | V) resolve_with_nvim "$active" "$template" ;;
+            x | X)
+                 echo "$rel" >> "$EXCLUDES_FILE"
+                                                  return 0
+                                                           ;;
+            s | S | b | B) return 0 ;;
+    esac
+  done
 }
 
 run_tui() {
@@ -196,7 +225,7 @@ run_tui() {
         print_success "No differences found"
         echo ""
         return 0
-    fi
+  fi
 
     while true; do
         clear
@@ -207,7 +236,7 @@ run_tui() {
 
         local selected
         # shellcheck disable=SC2016
-        selected=$(printf "%s\n" "${DIFFERENT_FILES[@]}" | cut -d'|' -f1 | \
+        selected=$(printf "%s\n" "${DIFFERENT_FILES[@]}" | cut -d'|' -f1 |
             fzf --height=85% --border \
                 --header="Enter: manage file • ESC: exit" \
                 --preview '
@@ -226,21 +255,27 @@ run_tui() {
                 IFS='|' read -r rel active template <<< "$entry"
                 file_menu "$rel" "$active" "$template"
                 break
-            fi
-        done
+      fi
+    done
         detect_differences
         ((${#DIFFERENT_FILES[@]} == 0)) && break
-    done
+  done
 }
 
 parse_args() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --dry-run|-n) DRY_RUN=true; shift ;;
-            -h|--help) echo "Usage: ravn-dot [--dry-run]"; exit 0 ;;
+            --dry-run | -n)
+                          DRY_RUN=true
+                                        shift
+                                              ;;
+            -h | --help)
+                       echo "Usage: ravn-dot [--dry-run]"
+                                                           exit 0
+                                                                  ;;
             *) shift ;;
-        esac
-    done
+    esac
+  done
 }
 
 main() {

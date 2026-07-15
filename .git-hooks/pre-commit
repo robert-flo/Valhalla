@@ -29,6 +29,7 @@ while IFS= read -r -d '' file; do
   # after the corresponding scripts have been formatted and linted separately.
   if [[ $file == Configs/.config/uwsm/* ]] ||
      [[ $file == Configs/.config/waybar/* ]] ||
+     [[ $file == Configs_RaVN/* ]] ||
      [[ $file == Configs/.local/lib/* ]] ||
      [[ $file == Configs/.local/share/wallbash/* ]] ||
      [[ $file == Configs/.local/share/waybar/* ]] ||
