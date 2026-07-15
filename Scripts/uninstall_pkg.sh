@@ -30,11 +30,11 @@ while IFS= read -r pkg; do
     ((skipped += 1))
   fi
 done < "$listPkg"
-print_info "Rollback summary: removed=$removed, already absent=$skipped"
 if ((removed == 0)); then
   print_success "Rollback not required: no packages from this run are currently installed"
   rm -f -- "$listPkg"
 else
+  print_success "Rollback completed: only packages from this run were removed"
   rm -f -- "$listPkg"
-  print_success "Rollback completed; the run record was consumed"
 fi
+print_info "Technical summary: removed=$removed, already absent=$skipped"

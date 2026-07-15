@@ -95,7 +95,9 @@ rollback_applications_from_menu() {
                           print_info "No application installation run is available to roll back"
                                                                                                   return 0
   }
-  print_info "Rolling back latest application run: ${run_file##*/}"
+  print_info "Rolling back the latest Applications Install everything run"
+  print_info "Run record: ${run_file##*/}"
+  print_info "Only the packages listed below will be affected; no other packages will be touched"
   print_info "Packages recorded in this run:"
   sed 's/^/  /' "$run_file"
   read -r -p "Continue? [y/N] " choice
