@@ -67,6 +67,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Changed
 
+- refactor: share RaVN restore flow with Configurations ([#82](https://github.com/robert-flo/Valhalla/pull/82)). <!-- changelog-pr:82 -->
+
 - feat: harden Git and RavnVM Make workflows ([#47](https://github.com/robert-flo/Valhalla/pull/47)). <!-- changelog-pr:47 -->
 
 - Restore the stable RavnVM experience ([#38](https://github.com/robert-flo/Valhalla/pull/38)). <!-- changelog-pr:38 -->

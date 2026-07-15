@@ -10,10 +10,9 @@ SOURCE_ROOT="${SCRIPT_DIR}/../../Configs_RaVN"
 source "${SCRIPT_DIR}/../global_fn.sh"
 
 manifest_paths() {
-  local flag="" destination="" artifact="" owner="" source="" relative=""
-  while IFS='|' read -r flag destination artifact owner || [[ -n $flag ]]; do
+  local flag="" destination="" artifact="" _owner="" source="" relative=""
+  while IFS='|' read -r flag destination artifact _owner || [[ -n $flag ]]; do
     [[ $flag == P || $flag == S ]] || continue
-    [[ $owner == ravn-configuration ]] || continue
     destination="${destination//\$\{HOME\}/$HOME}"
     source="${SOURCE_ROOT}/${destination#"$HOME"/}/${artifact}"
     if [[ -d $source ]]; then
