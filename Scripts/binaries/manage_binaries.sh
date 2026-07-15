@@ -71,6 +71,8 @@ clean_binaries() {
     print_info "Dry run: no binaries were removed"
     return 0
   fi
+  echo ""
+  echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
   read -r -p "Type yes to continue: " answer
   [[ $answer == yes ]] || {
     print_info "Cleanup cancelled"
