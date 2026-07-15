@@ -3,66 +3,37 @@
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MANIFEST="${SCRIPT_DIR}/pkg_ravn.lst"
+MANIFEST="${SCRIPT_DIR}/../pkg_core.lst"
+PACKAGE_INSTALLER="${SCRIPT_DIR}/../install_pkg.sh"
 RUN_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/ravn/applications"
 
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/../global_fn.sh"
 
-packages() { awk 'NF && $1 !~ /^#/ {print $1}' "$MANIFEST"; }
+packages() { cut -d '#' -f 1 "$MANIFEST" | awk '{$1=$1; if ($1 != "") print $1}'; }
 is_installed() { pacman -Q "$1" &> /dev/null; }
 is_available() { pacman -Si "$1" &> /dev/null; }
 
 calculate_candidates() {
-  local package=""
-  local candidates=0
-  local skipped=0
-  local unavailable=0
-  print_section "${RAVN_ICON[ui_check]} RaVN application package audit"
-  while IFS= read -r package; do
-    if is_installed "$package"; then
-      print_info "Skipping installed package: $package"
-      ((skipped += 1))
-    elif is_available "$package"; then
-      print_info "Candidate: $package"
-      ((candidates += 1))
-    else
-      print_warn "Package unavailable: $package"
-      ((unavailable += 1))
-    fi
-  done < <(packages)
-  print_info "Candidates: $candidates"
-  print_info "Already installed: $skipped"
-  print_info "Unavailable: $unavailable"
-  print_info "Audit complete; no packages were changed"
+  flg_DryRun=1 bash "$PACKAGE_INSTALLER" "$MANIFEST"
 }
 
 install_applications() {
   local package=""
-  local -a candidates=()
+  local -a previously_installed=()
   local -a installed=()
   while IFS= read -r package; do
-    if is_installed "$package"; then
-      print_info "Skipping installed package: $package"
-    elif is_available "$package"; then
-      candidates+=("$package")
-    else
-      print_warn "Package unavailable: $package"
-    fi
+    is_installed "$package" && previously_installed+=("$package")
   done < <(packages)
-  if ((${#candidates[@]} == 0)); then
-    print_info "No new RaVN application packages to install"
-    return 0
-  fi
-  if [[ ${DRY_RUN:-0} == 1 ]]; then
-    print_info "Dry run: no packages were installed"
-    printf '%s\n' "${candidates[@]}"
-    return 0
-  fi
-  sudo pacman -S --needed --noconfirm "${candidates[@]}"
-  for package in "${candidates[@]}"; do
-    if is_installed "$package"; then installed+=("$package"); fi
-  done
+  [[ ${DRY_RUN:-0} == 1 ]] && {
+                                flg_DryRun=1 bash "$PACKAGE_INSTALLER" "$MANIFEST"
+                                                                                    return
+  }
+  bash "$PACKAGE_INSTALLER" "$MANIFEST"
+  while IFS= read -r package; do
+    is_installed "$package" || continue
+    if [[ ! " ${previously_installed[*]} " == *" $package "* ]]; then installed+=("$package"); fi
+  done < <(packages)
   mkdir -p "$RUN_ROOT"
   local run_file=""
   run_file="$RUN_ROOT/$(date +'%y%m%d_%Hh%Mm%Ss').installed"

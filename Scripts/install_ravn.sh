@@ -245,7 +245,7 @@ clean_configurations() {
 }
 
 validate_application_sources() {
-  [[ -f $APPLICATIONS_MANAGER && -f ${APPLICATIONS_DIR}/pkg_ravn.lst ]]
+  [[ -f $APPLICATIONS_MANAGER && -f ${SCRIPT_DIR}/install_pkg.sh && -f ${SCRIPT_DIR}/pkg_core.lst ]]
 }
 
 install_all_applications() {

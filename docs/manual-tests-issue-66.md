@@ -156,7 +156,7 @@ No uses el gestor real de paquetes para desinstalar software durante esta
 prueba. Revisa primero el manifiesto:
 
 ```bash
-cat Scripts/applications/pkg_ravn.lst
+cat Scripts/pkg_core.lst
 HOME="$TEST_HOME" bash Scripts/applications/manage_applications.sh --test
 HOME="$TEST_HOME" bash Scripts/applications/manage_applications.sh --dry-run
 ```
