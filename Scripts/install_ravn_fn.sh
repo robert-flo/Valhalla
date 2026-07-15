@@ -103,7 +103,8 @@ rollback_applications_from_menu() {
   sed 's/^/  /' "$run_file"
   echo ""
   echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
-  read -r -p "Continue? [y/N] " choice
+  printf '%b' "  ${LIGHT_GRAY}Continue? [y/N] ${NC}"
+  read -r choice
   [[ $choice == y || $choice == Y ]] || {
                                           print_info "Rollback cancelled"
                                                                            return 0
