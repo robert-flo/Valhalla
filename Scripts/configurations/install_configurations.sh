@@ -22,11 +22,11 @@ while IFS='|' read -r flag destination artifact owner || [[ -n $flag ]]; do
     mkdir -p "${BACKUP_ROOT}/${destination#"$HOME"/}"
     cp -a "$target" "${BACKUP_ROOT}/${destination#"$HOME"/}/"
   fi
-  if [[ $flag == P ]]; then
-    cp -an "$source" "$destination/"
-  else
-    cp -a "$source" "$destination/"
-  fi
+  # RaVN always has precedence over upstream/existing resources at this
+  # point: any prior file was already backed up above. P vs S only
+  # distinguishes a single-file artifact from a directory to sync;
+  # both overwrite the destination.
+  cp -a "$source" "$destination/"
 done < "$MANIFEST"
 
 echo "[configurations] installed declared RaVN configuration overlay"

@@ -1,4 +1,7 @@
-# RaVN configuration overlay. Policies: P=preserve, S=sync.
+# RaVN configuration overlay. RaVN always takes precedence over any
+# existing (e.g. upstream) resource at the destination; the prior file
+# is backed up, then overwritten. P=single-file artifact, S=directory
+# to sync recursively.
 # flag|destination|artifact|owner
 P|${HOME}/.config/waybar|config.jsonc|ravn-configuration
 P|${HOME}/.config/waybar|style.css|ravn-configuration
