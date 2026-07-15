@@ -1,0 +1,35 @@
+# RaVN-owned package manifest.
+# This is the package source of truth for the independent RaVN installer.
+wttrbar
+python-requests|wttrbar
+ncdu
+dua-cli
+libqalculate
+gum
+grep
+ripgrep
+ripgrep-all
+fd
+bc
+ufw
+btop
+1password-cli
+snapd
+apparmor
+squashfs-tools
+gpu-screen-recorder
+wf-recorder
+tesseract
+tesseract-data-eng
+tesseract-data-spa
+wl-clipboard
+qemu-desktop
+sshpass
+curl
+wget
+knot
+speedtest-cli
+mtr
+strace
+lsof
+nano

@@ -4,7 +4,7 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGE_INSTALLER="${SCRIPT_DIR}/../install_pkg.sh"
-PACKAGE_LIST="${SCRIPT_DIR}/../pkg_core.lst"
+PACKAGE_LIST="${SCRIPT_DIR}/../configurationspkg_core_RaVN.lst"
 RUN_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/ravn/applications"
 
 if [[ ! -x $PACKAGE_INSTALLER ]]; then
