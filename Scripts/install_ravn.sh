@@ -395,7 +395,7 @@ run_applications_menu() {
 
 show_main_menu() {
   clear || true
-  print_header "Ravn installer"
+  print_ravn_banner "RaVN Installer"
   print_section "${RAVN_ICON[ui_command]} Choose an installation step"
   echo -e "  ${GREEN}1${NC}  ${RAVN_ICON[ui_package]}  Desktop launchers"
   echo -e "  ${GREEN}2${NC}  ${RAVN_ICON[ui_terminal]}  Binaries"
