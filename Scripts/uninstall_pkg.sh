@@ -17,16 +17,19 @@ removed=0
 skipped=0
 print_section "${ICON_CLEANING} RaVN package rollback"
 print_info "Run record: $listPkg"
+echo ""
+print_info "Only packages recorded by this RaVN installation run may be removed"
+print_section "Packages being removed"
 while IFS= read -r pkg; do
   pkg="${pkg%%#*}"
   pkg="${pkg//[[:space:]]/}"
   [[ -n $pkg ]] || continue
   if pacman -Q "$pkg" &> /dev/null; then
-    print_log -b "[remove] " "$pkg"
+    print_info "Removing explicitly installed package: $pkg"
     sudo pacman -R --noconfirm "$pkg"
     ((removed += 1))
   else
-    print_log -y "[skip] " "$pkg (not installed)"
+    print_info "Already absent; leaving unchanged: $pkg"
     ((skipped += 1))
   fi
 done < "$listPkg"
