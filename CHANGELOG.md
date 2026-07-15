@@ -17,6 +17,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Added
 
+- feat: complete RaVN Applications package lifecycle ([#80](https://github.com/robert-flo/Valhalla/pull/80)). <!-- changelog-pr:80 -->
+
 - feat: coordinate RaVN install everything ([#78](https://github.com/robert-flo/Valhalla/pull/78)). <!-- changelog-pr:78 -->
 
 - feat: add conservative RaVN applications ([#77](https://github.com/robert-flo/Valhalla/pull/77)). <!-- changelog-pr:77 -->
