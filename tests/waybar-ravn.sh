@@ -52,7 +52,7 @@ countdown_output=$(
 jq -e '.text == "No Countdowns" and .percentage == 0' \
   <<< "$countdown_output" > /dev/null
 
-awk -F'|' '$1 == "P" || $1 == "S" { entries++ } END { exit !(entries == 5) }' "$restore_manifest"
+awk -F'|' '$1 == "P" || $1 == "S" { entries++ } END { exit !(entries == 43) }' "$restore_manifest"
 
 for source in \
   "$repo_root/Configs_RaVN/.config/waybar/config.jsonc" \

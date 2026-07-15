@@ -153,7 +153,7 @@ install_everything() {
   local -a results=()
 
   print_header "Install everything"
-  for category in launchers binaries configurations applications; do
+  for category in applications binaries configurations launchers; do
     if install_category "$category"; then
       results+=("$category:${CATEGORY_RESULT}")
     else
@@ -407,10 +407,10 @@ show_main_menu() {
   clear || true
   print_ravn_banner "RaVN Installer"
   print_section "${RAVN_ICON[ui_command]} Choose an installation step"
-  echo -e "  ${GREEN}1${NC}  ${RAVN_ICON[ui_package]}  Desktop launchers"
+  echo -e "  ${GREEN}1${NC}  ${RAVN_ICON[ui_package]}  Applications"
   echo -e "  ${GREEN}2${NC}  ${RAVN_ICON[ui_terminal]}  Binaries"
   echo -e "  ${GREEN}3${NC}  ${RAVN_ICON[ui_gear]}  Configurations"
-  echo -e "  ${GREEN}4${NC}  ${RAVN_ICON[ui_package]}  Applications"
+  echo -e "  ${GREEN}4${NC}  ${RAVN_ICON[ui_package]}  Desktop launchers"
   echo -e "  ${GREEN}5${NC}  ${RAVN_ICON[ui_rocket]}  Install everything"
   echo -e "  ${GREEN}q${NC}  ${RAVN_ICON[ui_close]}  Exit"
   echo ""
@@ -426,7 +426,7 @@ run_main_menu() {
 
     case "$choice" in
       1)
-        run_launchers_menu
+        run_applications_menu
         ;;
       2)
         run_binaries_menu
@@ -435,7 +435,7 @@ run_main_menu() {
         run_configurations_menu
         ;;
       4)
-        run_applications_menu
+        run_launchers_menu
         ;;
       5)
         install_everything || true

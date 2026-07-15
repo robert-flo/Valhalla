@@ -20,6 +20,7 @@ assert_contains() {
 
 HOME="$FIXTURE_DIR/home"
 export HOME
+mkdir -p "$HOME"
 
 NO_COLOR=1 "$INSTALLER" binaries > "$FIXTURE_DIR/binaries.out"
 assert_contains "$FIXTURE_DIR/binaries.out" "installed declared RaVN binaries"

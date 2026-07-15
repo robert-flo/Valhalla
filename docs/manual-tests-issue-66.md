@@ -177,8 +177,8 @@ dependencias transitivas.
 Con un `HOME` temporal, selecciona `Install everything` desde el menú y
 comprueba que:
 
-1. Se procesan las categorías en orden: launchers, binaries, configurations,
-   applications.
+1. Se procesan las categorías en orden: applications, binaries, configurations,
+   launchers.
 2. Una categoría no disponible no impide procesar las siguientes.
 3. El resumen final muestra el estado individual de cada categoría.
 4. El comando devuelve éxito cuando no hay fallos de categorías implementadas.

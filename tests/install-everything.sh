@@ -32,7 +32,7 @@ output=$(< "$output_file")
   echo "FAIL: aggregate did not report failure" >&2
   exit 1
 }
-[[ ${calls[*]} == 'launchers binaries configurations applications' ]] || {
+[[ ${calls[*]} == 'applications binaries configurations launchers' ]] || {
   echo "FAIL: categories did not run in order: ${calls[*]}" >&2
   exit 1
 }
