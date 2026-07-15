@@ -395,7 +395,7 @@ run_applications_menu() {
     print_section "${RAVN_ICON[ui_command]} Choose an action"
     echo -e "  ${GREEN}1${NC}  ${RAVN_ICON[ui_package]}  Install everything"
     echo -e "  ${GREEN}2${NC}  ${RAVN_ICON[ui_check]}  Run tests"
-    echo -e "  ${GREEN}3${NC}  ${RAVN_ICON[ui_arrow_left]}  Back"
+    echo -e "  ${GREEN}3${NC}  ${ICON_CLEANING}  Rollback installed"
     echo -e "  ${GREEN}q${NC}  ${RAVN_ICON[ui_arrow_left]}  Back"
     printf '%b' "${LIGHT_GRAY}Selection:${NC} "
     read -r choice
@@ -409,7 +409,8 @@ run_applications_menu() {
         press_enter_to_continue
         ;;
       3)
-        return 0
+        rollback_applications_from_menu || true
+        press_enter_to_continue
         ;;
       q | Q) return 0 ;;
       *)
