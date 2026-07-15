@@ -29,6 +29,16 @@ if [[ $EUID -eq 0 ]]; then
   exit 1
 fi
 
+if [[ -z ${HOME:-} ]]; then
+  HOME="$(getent passwd "$(id -un)" | cut -d: -f6)"
+  export HOME
+fi
+
+if [[ -z ${HOME:-} || $HOME == / || ! -d $HOME || ! -w $HOME ]]; then
+  print_error "Unable to determine a writable home directory for $(id -un)"
+  exit 1
+fi
+
 press_enter_to_continue() {
   echo ""
   read -r -p "Press Enter to continue..." _

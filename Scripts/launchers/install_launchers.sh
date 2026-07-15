@@ -6,6 +6,16 @@
 
 set -uo pipefail
 
+if [[ -z ${HOME:-} ]]; then
+  HOME="$(getent passwd "$(id -un)" | cut -d: -f6)"
+  export HOME
+fi
+
+if [[ -z ${HOME:-} || $HOME == / || ! -d $HOME || ! -w $HOME ]]; then
+  echo "[launchers] error: unable to determine a writable home directory" >&2
+  exit 1
+fi
+
 LAUNCHERS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ICON_DIR="${HOME}/.local/share/applications/icons"
 APPS_DIR="${HOME}/.local/share/applications"
