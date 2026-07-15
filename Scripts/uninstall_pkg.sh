@@ -15,33 +15,25 @@ source "${scrDir}/global_fn.sh"
 
 removed=0
 skipped=0
-print_section "${ICON_CLEANING} RaVN package rollback"
-print_info "Run record: $listPkg"
+print_section "⏳  Removiendo paquetes"
+print_info "🔒  Solo se afectarán los paquetes registrados en esta corrida"
 echo ""
-print_info "Only packages recorded by this RaVN installation run may be removed"
-print_section "Packages being removed"
 while IFS= read -r pkg; do
   pkg="${pkg%%#*}"
   pkg="${pkg//[[:space:]]/}"
   [[ -n $pkg ]] || continue
   if pacman -Q "$pkg" &> /dev/null; then
-    print_info "Removing explicitly installed package: $pkg"
-    echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
-    print_info "Package manager output"
-    echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
-    sudo pacman -R --noconfirm "$pkg"
-    echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
-    print_info "End of package manager output"
+    print_success "$pkg"
+    sudo pacman -R --noconfirm "$pkg" 2>&1 | sed 's/^/     │ /'
     ((removed += 1))
   else
-    print_info "Already absent; leaving unchanged: $pkg"
+    print_info "–  Ya estaba ausente: $pkg"
     ((skipped += 1))
   fi
 done < "$listPkg"
-print_section "Rollback result"
 if ((removed == 0)); then
-  print_success "Rollback not required: no packages from this run are currently installed"
+  print_success "Rollback no requerido — $skipped ya estaban ausentes"
 else
-  print_success "Rollback completed: only packages from this run were removed"
+  print_success "Rollback completo — $removed paquetes removidos, $skipped ya estaban ausentes"
 fi
-print_info "Technical summary: removed=$removed, already absent=$skipped"
+print_info "Detalle: $listPkg"

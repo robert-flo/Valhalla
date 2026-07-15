@@ -95,16 +95,15 @@ rollback_applications_from_menu() {
                           print_info "No application installation run is available to roll back"
                                                                                                   return 0
   }
-  print_section "${ICON_CLEANING} Rollback application run"
-  print_info "Rolling back the latest Applications Install everything run"
-  print_info "Run record: $run_file"
+  print_header "🧹  Rollback · Applications"
+  print_info "🕓  Última corrida: $(date -d "@$(stat -c %Y "$run_file")" +'%d %b, %-I:%M %p')"
+  print_info "🔒  Alcance: solo los paquetes de esta corrida pueden tocarse — nada más en tu sistema"
   echo ""
-  print_info "Only the packages listed below will be affected; no other packages will be touched"
-  print_section "Packages selected for rollback"
-  sed 's/^/  /' "$run_file"
+  print_section "📦  Paquetes en esta corrida"
+  sed 's/^/  ○  /' "$run_file"
   echo ""
   echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
-  printf '%b' "  ${LIGHT_GRAY}Continue? [y/N] ${NC}"
+  printf '%b' "  ${LIGHT_GRAY}¿Continuar? [y/N] ${NC}"
   read -r choice
   [[ $choice == y || $choice == Y ]] || {
                                           print_info "Rollback cancelled"
