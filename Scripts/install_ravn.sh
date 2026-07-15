@@ -228,7 +228,7 @@ clean_configurations() {
 }
 
 validate_application_sources() {
-  [[ -f $APPLICATIONS_MANAGER && -f ${SCRIPT_DIR}/install_pkg.sh && -f ${SCRIPT_DIR}/configurationspkg_core_RaVN.lst ]]
+  [[ -f $APPLICATIONS_MANAGER && -f ${SCRIPT_DIR}/install_pkg.sh && -f ${SCRIPT_DIR}/uninstall_pkg.sh && -f ${SCRIPT_DIR}/configurationspkg_core_RaVN.lst ]]
 }
 
 install_all_applications() {
