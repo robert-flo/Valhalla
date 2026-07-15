@@ -2,25 +2,8 @@
 
 set -Eeuo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LAUNCHERS_DIR="${SCRIPT_DIR}/launchers"
-LAUNCHER_INSTALLER="${LAUNCHERS_DIR}/install_launchers.sh"
-LAUNCHER_MANAGER="${LAUNCHERS_DIR}/manage_launchers.sh"
-BINARIES_DIR="${SCRIPT_DIR}/binaries"
-BINARIES_INSTALLER="${BINARIES_DIR}/install_binaries.sh"
-BINARIES_MANAGER="${BINARIES_DIR}/manage_binaries.sh"
-CONFIGURATIONS_DIR="${SCRIPT_DIR}/configurations"
-CONFIGURATIONS_INSTALLER="${CONFIGURATIONS_DIR}/install_configurations.sh"
-CONFIGURATIONS_MANAGER="${CONFIGURATIONS_DIR}/manage_configurations.sh"
-APPLICATIONS_DIR="${SCRIPT_DIR}/applications"
-APPLICATIONS_MANAGER="${APPLICATIONS_DIR}/manage_applications.sh"
-APPLICATIONS_RUN_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/ravn/applications"
-readonly CATEGORY_BINARIES="Binaries"
-readonly CATEGORY_CONFIGURATIONS="Configurations"
-readonly CATEGORY_APPLICATIONS="Applications"
-
 # shellcheck disable=SC1091
-if ! source "${SCRIPT_DIR}/global_fn.sh"; then
+if ! source "$(dirname "${BASH_SOURCE[0]}")/install_ravn_fn.sh"; then
   echo "Error: unable to source global_fn.sh..." >&2
   exit 1
 fi
@@ -500,6 +483,11 @@ run_dry_run() {
   print_info "Would write only artifacts declared by launchers/restore_launchers.psv"
   print_info "No files were modified"
 }
+
+# Re-source the helper library after the menu declarations so shared helpers
+# remain the single implementation used by the entry point.
+# shellcheck disable=SC1091
+source "$(dirname "${BASH_SOURCE[0]}")/install_ravn_fn.sh"
 
 main() {
   case "${1:-menu}" in
