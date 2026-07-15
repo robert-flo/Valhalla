@@ -46,8 +46,10 @@ case "${1:-test}" in
       pacman -Q "$package" &> /dev/null && printf '%s\n' "$package" >> "$before_file"
     done < <(cut -d '#' -f 1 "$PACKAGE_LIST" | awk '{$1=$1; if ($1 != "") print $1}')
     bash "$PACKAGE_INSTALLER" "$PACKAGE_LIST"
-    run_file="$RUN_ROOT/$(date +'%y%m%d_%Hh%Mm%Ss').installed"
+    # RaVN keeps only the current reversible package run.
     mkdir -p "$RUN_ROOT"
+    find "$RUN_ROOT" -maxdepth 1 -type f -name '*.installed' -delete
+    run_file="$RUN_ROOT/$(date +'%y%m%d_%Hh%Mm%Ss').installed"
     : > "$run_file"
     while IFS= read -r package; do
       pacman -Q "$package" &> /dev/null || continue
