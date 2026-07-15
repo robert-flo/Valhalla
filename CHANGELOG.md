@@ -10,6 +10,8 @@ RaVN does not yet publish versioned releases, so completed work remains under
 
 ### Fixed
 
+- fix: give RaVN configurations precedence ([#79](https://github.com/robert-flo/Valhalla/pull/79)). <!-- changelog-pr:79 -->
+
 - fix: make git setup idempotent ([#45](https://github.com/robert-flo/Valhalla/pull/45)). <!-- changelog-pr:45 -->
 
 
