@@ -450,16 +450,16 @@ print_usage() {
 Usage: install_ravn.sh [COMMAND]
 
 Commands:
-  all, --all                         Install all available RaVN categories
-  launchers                          Install all Desktop launchers
-  binaries                           Install the RaVN Binaries category
-  configurations                     Install the RaVN Configurations overlay
-  applications                       Install the RaVN Applications category
-  rollback-applications <run-file>   Roll back packages from a run
-  test, --test                       Audit launcher artifacts declared in the manifest
-  clean, --clean                     Remove declared launcher artifacts after confirmation
-  dry-run, --dry-run                 Show what installation would do without modifying $HOME
-  help, --help, -h                   Show this help
+  all, --all ....................... Install all available RaVN categories
+  launchers ......................... Install all Desktop launchers
+  binaries .......................... Install the RaVN Binaries category
+  configurations .................... Install the RaVN Configurations overlay
+  applications ...................... Install the RaVN Applications category
+  rollback-applications <run-file> .. Roll back packages from a run
+  test, --test ...................... Audit launcher artifacts declared in the manifest
+  clean, --clean .................... Remove declared launcher artifacts after confirmation
+  dry-run, --dry-run ................ Show what installation would do without modifying $HOME
+  help, --help, -h .................. Show this help
 
 With no command, the interactive installer menu is shown.
 USAGE
