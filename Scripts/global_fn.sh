@@ -410,8 +410,8 @@ print_ravn_banner() {
   │  ╚═╝  ╚═╝╚═╝  ╚═╝  ╚═══╝  ╚═╝  ╚═══╝               │
   │                                                    │
 BANNER_EOF
-  printf '  │       %-44s│\n' "$subtitle"
-  printf '  │       %b%-19s%b %b%-12s%b          │\n' \
+  printf '  │       %-45s│\n' "$subtitle"
+  printf '  │       %b%-19s%b %b%-12s%b             │\n' \
     "$GRAY" "by Roberto Flores" "$CYAN" "$WHITE" "@robert-flo" "$CYAN"
   cat << 'BANNER_EOF'
   │                                                    │
