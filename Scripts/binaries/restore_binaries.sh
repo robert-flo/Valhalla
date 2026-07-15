@@ -6,11 +6,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MANIFEST="${1:-${SCRIPT_DIR}/restore_binaries.psv}"
 SOURCE_ROOT="${2:-${SCRIPT_DIR}/../../Configs_RaVN}"
 
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/../global_fn.sh"
+
 resolve_path() {
   printf '%s\n' "${1//\$\{HOME\}/$HOME}"
 }
 
 backup_root="${HOME}/.config/cfg_backups/$(date +'%y%m%d_%Hh%Mm%Ss')-ravn-binaries"
+
+print_info "Restoring declared RaVN binaries"
+echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
 
 while IFS='|' read -r flag destination artifacts dependency || [[ -n $flag ]]; do
   [[ -z $flag || $flag == \#* ]] && continue
@@ -41,12 +47,15 @@ while IFS='|' read -r flag destination artifacts dependency || [[ -n $flag ]]; d
       mkdir -p "${backup_root}/${destination#"$HOME"/}"
       cp -p -- "$target" "${backup_root}/${destination#"$HOME"/}/"
       if [[ $flag == P ]]; then
-        printf '[deploy] [preserved] %s\n' "$target"
+        print_info "Preserved ${target}"
         continue
       fi
     fi
 
     cp -p -- "$source" "$target"
-    printf '[deploy] [restore] %s\n' "$target"
+    print_success "Restored ${target}"
   done
 done < "$MANIFEST"
+
+echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
+print_success "Declared RaVN binaries restored"
