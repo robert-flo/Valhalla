@@ -48,6 +48,8 @@ audit_binaries() {
       ((missing += 1))
     fi
   done < <(load_paths)
+  echo ""
+  echo -e "${GRAY}  ──────────────────────────────────────────────────────────${NC}"
   print_info "Present: $present"
   print_info "Missing: $missing"
   ((missing == 0))
