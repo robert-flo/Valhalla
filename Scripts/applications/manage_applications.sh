@@ -21,6 +21,12 @@ print_application_test_context() {
   print_section "Existing package installer audit"
 }
 
+print_application_install_context() {
+  print_section "${RAVN_ICON[ui_package]} RaVN application package installation"
+  print_info "Manifest: ${PACKAGE_LIST#"${SCRIPT_DIR}/../"}"
+  print_info "Mode: install; queued packages will be installed by install_pkg.sh"
+}
+
 if [[ ! -x $PACKAGE_INSTALLER ]]; then
   echo "Applications installer not found: ${PACKAGE_INSTALLER}" >&2
   exit 1
@@ -40,6 +46,7 @@ case "${1:-test}" in
     fi
     ;;
   install | --install)
+    print_application_install_context
     before_file="$(mktemp)"
     trap 'rm -f "$before_file"' EXIT
     while IFS= read -r package; do

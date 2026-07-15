@@ -25,9 +25,11 @@ while IFS= read -r pkg; do
   if pacman -Q "$pkg" &> /dev/null; then
     print_success "$pkg"
     sudo pacman -R --noconfirm "$pkg" 2>&1 | sed 's/^/     │ /'
+    count_ok "$pkg"
     ((removed += 1))
   else
     print_info "–  Ya estaba ausente: $pkg"
+    count_skip "$pkg"
     ((skipped += 1))
   fi
 done < "$listPkg"
@@ -41,3 +43,4 @@ else
   print_success "Rollback completo — $removed $removed_label, $skipped_label"
 fi
 print_info "Detalle: $listPkg"
+print_summary "Application rollback"
