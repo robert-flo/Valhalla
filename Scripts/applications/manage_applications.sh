@@ -25,6 +25,7 @@ print_application_install_context() {
   print_section "${RAVN_ICON[ui_package]} RaVN application package installation"
   print_info "Manifest: ${PACKAGE_LIST#"${SCRIPT_DIR}/../"}"
   print_info "Mode: install; queued packages will be installed by install_pkg.sh"
+  print_section "Existing package installer output"
 }
 
 if [[ ! -x $PACKAGE_INSTALLER ]]; then
