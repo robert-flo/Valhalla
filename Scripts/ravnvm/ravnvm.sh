@@ -821,26 +821,7 @@ function press_enter_to_continue() {
 }
 
 function print_ravnvm_banner() {
-  echo -e "${CYAN}"
-  cat << 'BANNER_EOF'
-  ╭────────────────────────────────────────────────────╮
-  │                                                    │
-  │  ██████╗  █████╗ ██╗   ██╗███╗   ██╗               │
-  │  ██╔══██╗██╔══██╗██║   ██║████╗  ██║               │
-  │  ██████╔╝███████║██║   ██║██╔██╗ ██║               │
-  │  ██╔══██╗██╔══██║╚██╗ ██╔╝██║╚██╗██║               │
-  │  ██║  ██║██║  ██║ ╚████╔╝ ██║ ╚████║               │
-  │  ╚═╝  ╚═╝╚═╝  ╚═╝  ╚═══╝  ╚═╝  ╚═══╝               │
-  │                                                    │
-  │       RavnVM — QEMU/KVM Development Environment    │
-  │                                                    │
-BANNER_EOF
-  echo -e "  │       ${GRAY}by Roberto Flores ${WHITE}@robert-flo${CYAN}                │"
-  cat << 'BANNER_EOF'
-  │                                                    │
-  ╰────────────────────────────────────────────────────╯
-BANNER_EOF
-  echo -e "${NC}"
+  print_ravn_banner "RavnVM — QEMU/KVM Development Environment"
 }
 
 function format_bytes() {
